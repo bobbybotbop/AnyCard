@@ -16,6 +16,7 @@ export interface Card {
 export interface Set {
   name: string;
   theme: string;
+  coverImage: string;
   cards: Card[];
 }
 
@@ -23,6 +24,8 @@ export const cardSets: Set[] = [
   {
     name: "Pokemon Set",
     theme: "pokemon",
+    coverImage:
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=600&fit=crop",
     cards: [
       {
         name: "Pikachu",
@@ -79,6 +82,8 @@ export const cardSets: Set[] = [
   {
     name: "Power Tools Set",
     theme: "power tools",
+    coverImage:
+      "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=600&fit=crop",
     cards: [
       {
         name: "Drill Master",
@@ -135,6 +140,8 @@ export const cardSets: Set[] = [
   {
     name: "Cakes Set",
     theme: "cakes",
+    coverImage:
+      "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=600&fit=crop",
     cards: [
       {
         name: "Chocolate Cake",
