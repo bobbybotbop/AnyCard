@@ -38,8 +38,8 @@ export const PATHS: {
     element: <Counter />,
   },
   {
-    link: "/page",
-    label: "Page",
+    link: "/Testing",
+    label: "Testing",
     element: <Page />,
   },
 ];
