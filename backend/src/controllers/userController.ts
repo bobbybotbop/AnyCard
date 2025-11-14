@@ -1,6 +1,16 @@
 import { Request, Response } from "express";
 //import { User } from "../models/model.ts";
 
+export const getUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // find user
+    const user = null;
+  } catch {
+    // if not work
+    res.status(500).json();
+  }
+};
+
 export const getUserByEmail = async (
   req: Request,
   res: Response
@@ -66,7 +76,7 @@ export const swapCards = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const addToUserDeck = async (
+export const addToUserCards = async (
   req: Request,
   res: Response
 ): Promise<void> => {

@@ -1,24 +1,26 @@
 import { Request, Response, Router } from "express";
 
 import {
+  getUser,
   getUserByEmail,
   findUserByUserName,
   createUser,
   swapCards,
   deleteCard,
-  addToUserDeck,
+  addToUserCards,
 } from "../controllers/userController";
 
 const router = Router();
 
-router.get("/id/:id", getUserByEmail);
-router.get("/id/:username", findUserByUserName);
+router.get("/:id", getUser);
+router.get("/email/:email", getUserByEmail);
+router.get("/username/:username", findUserByUserName);
 
-router.post("/createUser", createUser);
-router.post("/swap-cards/:id", swapCards);
+router.post("", createUser);
+router.post("/:id/swap-cards", swapCards);
 
-router.put("/updateDeck/:id", addToUserDeck);
+router.put("/:id/cards", addToUserCards);
 
-router.delete("/deleteCard/:id", deleteCard);
+router.delete("/:id/cards/:cardId", deleteCard);
 
 export default router;
