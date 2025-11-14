@@ -16,10 +16,13 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     errorElement: <ErrorPage />,
     children: [
-      ...PATHS.map((item) => ({
-        path: item.link,
-        element: item.element,
-      })),
+      ...PATHS.map((item) => {
+        const Component = item.component;
+        return {
+          path: item.link,
+          element: <Component />,
+        };
+      }),
     ],
   },
 ]);

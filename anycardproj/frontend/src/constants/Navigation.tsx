@@ -1,7 +1,7 @@
-import Weather from "../pages/Weather";
-import Counter from "../pages/Counter";
+import Inventory from "../pages/Inventory";
+import Profile from "../pages/Profile";
 import HomePage from "../pages/Home";
-import Page from "../pages/Page";
+import { ComponentType } from "react";
 
 /**
  * TODO: Modify this constant to point to the URL of your backend.
@@ -20,26 +20,22 @@ export const BACKEND_BASE_PATH = "https://fa23-lec9-demo-soln.fly.dev/api";
 export const PATHS: {
   link: string;
   label: string;
-  element?: JSX.Element;
+  component: ComponentType;
 }[] = [
   {
     link: "/",
     label: "Home",
-    element: <HomePage />,
+    component: HomePage,
   },
   {
-    link: "/weather",
-    label: "Weather",
-    element: <Weather />,
+    link: "/profile",
+    label: "Profile",
+    component: Profile,
   },
   {
-    link: "/counter",
-    label: "Counter",
-    element: <Counter />,
+    link: "/inventory",
+    label: "Inventory",
+    component: Inventory,
   },
-  {
-    link: "/Testing",
-    label: "Testing",
-    element: <Page />,
-  },
+  
 ];
