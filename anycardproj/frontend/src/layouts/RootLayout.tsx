@@ -11,7 +11,8 @@ const RootLayout = () => (
       width: "100%",
     }}
   >
-    <HeaderSimple links={PATHS} />
+    {/* change to 0, -1 to hide login in nav */}
+    <HeaderSimple links={PATHS.slice(0, PATHS.length)} />
     <div style={{ flex: 1 }}>
       <Outlet />
     </div>

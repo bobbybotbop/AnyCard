@@ -1,4 +1,3 @@
-import Card from "../components/Card";
 import Set from "../components/Set";
 import { cardSets } from "../data/cards";
 

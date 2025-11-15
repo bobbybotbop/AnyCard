@@ -1,6 +1,7 @@
 import Inventory from "../pages/Inventory";
 import Profile from "../pages/Profile";
 import HomePage from "../pages/Home";
+import LoginPage from "../pages/Login";
 import { ComponentType } from "react";
 
 /**
@@ -37,5 +38,9 @@ export const PATHS: {
     label: "Inventory",
     component: Inventory,
   },
-  
+  {
+    link: "/login",
+    label: "login",
+    component: LoginPage,
+  },
 ];
