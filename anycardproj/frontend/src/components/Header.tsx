@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/authProvider";
 
 interface HeaderSimpleProps {
   links: { link: string; label: string }[];
 }
 
 export function HeaderSimple({ links }: HeaderSimpleProps) {
+  const { user } = useAuth();
   const [active, setActive] = useState(links[0].link);
 
   const items = links.map((link) => (
@@ -28,6 +30,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
   return (
     <header className="h-[60px] border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center gap-8">
+        <h1>{user?.displayName}</h1>
         <nav className="flex-row items-center gap-1">{items}</nav>
       </div>
     </header>

@@ -1,7 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @plugin "tailwindcss-animate";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -39,7 +39,7 @@ body {
 }
 textarea,
 input,
-button {
+.in {
   font-size: 1rem;
   font-family: inherit;
   border: none;
@@ -51,8 +51,6 @@ button {
   background-color: white;
   line-height: 1.5;
   margin: 0;
-}
-button {
   color: #3992ff;
   font-weight: 500;
 }

@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "./pages/Error";
 import RootLayout from "./layouts/RootLayout";
 import { PATHS } from "./constants/Navigation";
+import { AuthUserProvider } from "./auth/authProvider";
 import "./index.css";
 
 const theme = {
@@ -30,7 +31,9 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
-      <RouterProvider router={router} />
+      <AuthUserProvider>
+        <RouterProvider router={router} />
+      </AuthUserProvider>
     </MantineProvider>
   );
 }

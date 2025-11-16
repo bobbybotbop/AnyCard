@@ -3,67 +3,68 @@ import { Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, HelpCircle, AlertCircle } from "lucide-react";
 import googleLogo from "../assets/googleLogo.svg";
 import { BackgroundBeams } from "../components/ui/background-beams";
+import { signin } from "../auth/auth";
+import anyCardLogo from "../../public/anyCardLogo.png";
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberDevice, setRememberDevice] = useState(false);
+  //   const [showPassword, setShowPassword] = useState(false);
+  //   const [rememberDevice, setRememberDevice] = useState(false);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  //   // Form state
+  //   const [formData, setFormData] = useState({
+  //     email: "",
+  //     password: "",
+  //   });
 
-  // UI state
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  //   // UI state
+  //   const [error, setError] = useState("");
+  //   const [success, setSuccess] = useState("");
 
-  // Handle input changes
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-    // Clear error when user starts typing
-    if (error) setError("");
-  };
+  //   // Handle input changes
+  //   const handleInputChange = (field: string, value: string) => {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       [field]: value,
+  //     }));
+  //     // Clear error when user starts typing
+  //     if (error) setError("");
+  //   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  //   // Handle form submission
+  //   const handleSubmit = (e: React.FormEvent) => {
+  //     e.preventDefault();
 
-    // Basic validation
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all fields");
-      return;
-    }
+  //     // Basic validation
+  //     if (!formData.email || !formData.password) {
+  //       setError("Please fill in all fields");
+  //       return;
+  //     }
 
-    if (!formData.email.includes("@")) {
-      setError("Please enter a valid email address");
-      return;
-    }
+  //     if (!formData.email.includes("@")) {
+  //       setError("Please enter a valid email address");
+  //       return;
+  //     }
 
-    // Form is valid - UI only, no API call
-    setError("");
-    setSuccess("Form is valid (API calls removed)");
-  };
+  //     // Form is valid - UI only, no API call
+  //     setError("");
+  //     setSuccess("Form is valid (API calls removed)");
+  //   };
 
-  // Handle forgot password
-  const handleForgotPassword = () => {
-    if (!formData.email) {
-      setError("Please enter your email address first");
-      return;
-    }
+  //   // Handle forgot password
+  //   const handleForgotPassword = () => {
+  //     if (!formData.email) {
+  //       setError("Please enter your email address first");
+  //       return;
+  //     }
 
-    setError("");
-    setSuccess("Password reset requested (API calls removed)");
-  };
+  //     setError("");
+  //     setSuccess("Password reset requested (API calls removed)");
+  //   };
 
   return (
     <div className="min-h-screen bg-black overflow-hidden">
       {/* Animated Background Elements */}
       <BackgroundBeams />
-      <div className="absolute inset-0 overflow-hidden"></div>
 
       {/* Main Content */}
       <div className="relative z-10 flex min-h-[calc(100vh-80px)]">
@@ -91,11 +92,16 @@ export default function LoginPage() {
                 and collect the daily generated sets.
               </h2>
             </div>
+            <img
+              alt=""
+              src={anyCardLogo}
+              className="[filter:invert(1)_hue-rotate(360deg)] w-[80%] "
+            />
           </div>
         </div>
 
         {/* Right Section - Login Form */}
-        <div className="w-full lg:w-1/2 p-10 lg:p-16 flex items-center justify-center">
+        <div className="w-full lg:w-1/2 py-[12%] flex justify-center">
           <div className="w-full max-w-md space-y-8">
             {/* Login Title */}
             <div className="text-center space-y-2">
@@ -104,7 +110,7 @@ export default function LoginPage() {
               </h1>
             </div>
 
-            {/* Error/Success Messages */}
+            {/* Error/Success Messages
             {error && (
               <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-center space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
@@ -119,9 +125,9 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Login Form */}
+            {/* Login Form 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Field */}
+              {/* Email Field 
               <div className="space-y-3">
                 <label
                   htmlFor="email"
@@ -142,8 +148,8 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
-              {/* Password Field */}
-              <div className="space-y-3">
+              {/* Password Field 
+              <div className="">
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="password"
@@ -157,7 +163,7 @@ export default function LoginPage() {
                     className="text-base text-blue-400 hover:text-blue-300 transition-colors duration-300 disabled:opacity-50"
                   >
                     Forgot your password?
-                  </button> */}
+                  </button> 
                 </div>
                 <div className="relative">
                   <input
@@ -173,7 +179,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2  bg-amber-400"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2  bg-transparent"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -183,7 +189,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-              {/* Remember Device */}
+              {/* Remember Device 
               <div className="flex items-center space-x-4">
                 <input
                   title="remember"
@@ -197,14 +203,14 @@ export default function LoginPage() {
                 />
                 <p className="text-white ml-1"> Remember this device</p>
               </div>
-              {/* Sign In Button */}
+              {/* Sign In Button 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 text-lg rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-500/25 cursor-pointer"
+                className="in w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 text-lg rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg shadow-blue-500/25 cursor-pointer"
               >
                 <p className="text-white">Sign in</p>
               </button>
-              {/* Registration Link */}
+              {/* Registration Link 
               <div className="text-center">
                 <span className="text-gray-300 text-base">
                   Don't have an account?{" "}
@@ -215,29 +221,32 @@ export default function LoginPage() {
                 >
                   Register.
                 </Link>
+              </div> */}
+            {/* Separator */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/20"></div>
               </div>
-              {/* Separator */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/20"></div>
-                </div>
-                <div className="relative flex justify-center text-base">
-                  <span className="px-5 py-2 bg-black/20 backdrop-blur-sm text-gray-300 rounded-lg">
-                    Or log in with
-                  </span>
-                </div>
+              <div className="relative flex justify-center text-base">
+                {/* <span className="px-5 py-2 bg-black/20 backdrop-blur-sm text-gray-300 rounded-lg">
+                  Or log in with
+                </span> */}
               </div>
-              {/* Social Login Buttons  */}
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-colors duration-300 py-4 text-base rounded-lg"
-                >
-                  <img src={googleLogo} alt="Google" className="w-6 h-6 mr-2" />
-                  <p className="text-black">Continue with Google</p>
-                </button>
-              </div>
-            </form>
+            </div>
+            {/* Social Login Buttons  */}
+            <div className="space-y-4">
+              <button
+                type="button"
+                className="in w-full flex items-center justify-center bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-colors duration-300 py-4 text-base rounded-lg"
+                onClick={() => {
+                  signin();
+                }}
+              >
+                <img src={googleLogo} alt="Google" className="w-6 h-6 mr-2" />
+                <p className="text-black">Continue with Google</p>
+              </button>
+            </div>
+            {/* </form> */}
           </div>
         </div>
       </div>

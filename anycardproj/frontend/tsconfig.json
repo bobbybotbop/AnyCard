@@ -25,6 +25,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
-  "include": ["src", "../backend/firebase.ts"],
+  "include": ["src", "src/auth/firebase.ts", "../backend/auth"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
