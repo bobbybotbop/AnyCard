@@ -16,7 +16,9 @@ import { ComponentType } from "react";
  * If you've already deployed your app (using `fly launch` or `fly deploy`),
  * you can find the name by running `flyctl status`, under App > Name.
  */
-export const BACKEND_BASE_PATH = "https://fa23-lec9-demo-soln.fly.dev/api";
+// For local development, use localhost. For production, use the deployed URL
+export const BACKEND_BASE_PATH = "http://localhost:8080";
+// export const BACKEND_BASE_PATH = "https://fa23-lec9-demo-soln.fly.dev/api";
 
 export const PATHS: {
   link: string;

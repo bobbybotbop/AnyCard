@@ -1,22 +1,27 @@
 import { HeaderSimple } from "../components/Header";
 import { PATHS } from "../constants/Navigation";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
-const RootLayout = () => (
-  <div
-    style={{
-      display: "flex",
-      flexDirection: "column",
-      minHeight: "100vh",
-      width: "100%",
-    }}
-  >
-    {/* change to 0, -1 to hide login in nav */}
-    <HeaderSimple links={PATHS.slice(0, PATHS.length)} />
-    <div style={{ flex: 1 }}>
-      <Outlet />
+const RootLayout = () => {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        width: "100%",
+      }}
+    >
+      {/* change to 0, -1 to hide login in nav and disables nav bar in login page */}
+      {!isLoginPage && <HeaderSimple links={PATHS.slice(0, -1)} />}
+      <div style={{ flex: 1 }}>
+        <Outlet />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default RootLayout;

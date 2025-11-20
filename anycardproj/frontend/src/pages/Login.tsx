@@ -1,12 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, HelpCircle, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import googleLogo from "../assets/googleLogo.svg";
 import { BackgroundBeams } from "../components/ui/background-beams";
 import { signin } from "../auth/auth";
 import anyCardLogo from "../../public/anyCardLogo.png";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   //   const [showPassword, setShowPassword] = useState(false);
   //   const [rememberDevice, setRememberDevice] = useState(false);
 
@@ -238,8 +237,15 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="in w-full flex items-center justify-center bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-colors duration-300 py-4 text-base rounded-lg"
-                onClick={() => {
-                  signin();
+                onClick={async () => {
+                  try {
+                    await signin();
+                    // Redirect to homepage after successful login
+                    navigate("/");
+                  } catch (error) {
+                    // Error handling is done in the signin function
+                    console.error("Login failed:", error);
+                  }
                 }}
               >
                 <img src={googleLogo} alt="Google" className="w-6 h-6 mr-2" />

@@ -1,14 +1,22 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Rarity } from "../data/cards";
+import CreateCardTestButton from "../components/CreateCardTestButton";
+import { useAuth } from "../auth/authProvider";
 
 const Profile = () => {
-  // Dummy data
-  const profileData = {
-    name: "Alex Johnson",
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState({
+    name: "",
     profilePicture:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-    level: 42,
-  };
+      "https://pm1.aminoapps.com/7258/5520799cf0539b408bd8abee0a14d3a492ee5107r1-753-753v2_hq.jpg",
+    level: 0,
+  });
+
+  // const useEffect(()=>{
+  //   user
+  // },[user])
 
   const cardsCollected = {
     total: 127,
@@ -64,7 +72,10 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Profile</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
+          <CreateCardTestButton />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Profile Info Card */}
