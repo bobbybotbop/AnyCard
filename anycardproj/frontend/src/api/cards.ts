@@ -43,8 +43,15 @@ export const createUser = async (userData: newUser): Promise<userData> => {
   return response.json();
 };
 
-// export const getUserData = async():Promise<userData>=>{
-//   const response = await fetch
+export const getUserData = async (uid: string): Promise<userData> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getUserData/${uid}`, {
+    method: "GET",
+  });
 
-//   return response.json();
-// }
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get user data");
+  }
+
+  return response.json();
+};

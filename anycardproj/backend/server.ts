@@ -59,9 +59,9 @@ async function getUserData(uid: string): Promise<userData | null> {
       username: data?.username || "",
       email: data?.email || "",
       createdAt: data?.createdAt || "",
-      level: data?.Level || 0,
-      cards: data?.Cards || [],
-      favoriteCards: data?.FavoriteCards || [],
+      level: data?.level || 0,
+      cards: data?.cards || [],
+      favoriteCards: data?.favoriteCards || [],
     };
   } catch (error) {
     throw error;

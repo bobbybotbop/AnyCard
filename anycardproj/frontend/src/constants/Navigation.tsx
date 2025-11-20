@@ -3,6 +3,7 @@ import Profile from "../pages/Profile";
 import HomePage from "../pages/Home";
 import LoginPage from "../pages/Login";
 import { ComponentType } from "react";
+import { LucideIcon, Home, User, Package, LogIn } from "lucide-react";
 
 /**
  * TODO: Modify this constant to point to the URL of your backend.
@@ -24,25 +25,30 @@ export const PATHS: {
   link: string;
   label: string;
   component: ComponentType;
+  icon: LucideIcon;
 }[] = [
   {
     link: "/",
     label: "Home",
     component: HomePage,
+    icon: Home,
   },
   {
     link: "/profile",
     label: "Profile",
     component: Profile,
+    icon: User,
   },
   {
     link: "/inventory",
     label: "Inventory",
     component: Inventory,
+    icon: Package,
   },
   {
     link: "/login",
     label: "login",
     component: LoginPage,
+    icon: LogIn,
   },
 ];

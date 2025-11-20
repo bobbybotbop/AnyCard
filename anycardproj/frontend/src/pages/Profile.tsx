@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Rarity } from "../data/cards";
-import CreateCardTestButton from "../components/CreateCardTestButton";
 import { useAuth } from "../auth/authProvider";
+import { getUserData } from "../api/cards";
+
 
 const Profile = () => {
   const { user } = useAuth();
@@ -13,43 +13,67 @@ const Profile = () => {
       "https://pm1.aminoapps.com/7258/5520799cf0539b408bd8abee0a14d3a492ee5107r1-753-753v2_hq.jpg",
     level: 0,
   });
+  const [cardsCollected, setCardsCollected] = useState({
+    total: 0,
+    common: 0,
+    uncom: 0,
+    rare: 0,
+    epic: 0,
+    legend: 0,
+    mythic: 0,
+  });
+  const [inventoryPreview, setInventoryPreview] = useState<any[]>([]);
 
-  // const useEffect(()=>{
-  //   user
-  // },[user])
+  useEffect(() => {
+    const fetch = async () => {
+      if (!user?.uid) {
+        setLoading(false);
+        console.log("user has not logged in");
+        return;
+      }
+      try {
+        const userData = await getUserData(user.uid);
+        const { username, level, cards, favoriteCards } = userData;
 
-  const cardsCollected = {
-    total: 127,
-    common: 45,
-    uncom: 32,
-    rare: 28,
-    epic: 15,
-    legend: 5,
-    mythic: 2,
-  };
+        // Update profile data
+        setProfileData({
+          name: username || user.displayName || "Anonymous",
+          profilePicture:
+            "https://pm1.aminoapps.com/7258/5520799cf0539b408bd8abee0a14d3a492ee5107r1-753-753v2_hq.jpg",
+          level: level || 0,
+        });
 
-  const inventoryPreview = [
-    {
-      name: "Pikachu",
-      rarity: "rare" as Rarity,
-      picture: "/pokemon/pikachu.jpg",
-    },
-    {
-      name: "Charizard",
-      rarity: "legend" as Rarity,
-      picture: "/pokemon/charizard.jpg",
-    },
-    {
-      name: "Mewtwo",
-      rarity: "mythic" as Rarity,
-      picture: "/pokemon/mewtwo.jpg",
-    },
-    {
-      name: "Bulbasaur",
-      rarity: "common" as Rarity,
-      picture: "/pokemon/bulbasaur.jpg",
-    },
-  ];
+        // Calculate cards collected by rarity
+        const stats = {
+          total: cards?.length || 0,
+          common: 0,
+          uncom: 0,
+          rare: 0,
+          epic: 0,
+          legend: 0,
+          mythic: 0,
+        };
+
+        cards?.forEach((card: any) => {
+          const rarity = card.rarity?.toLowerCase();
+          if (stats.hasOwnProperty(rarity)) {
+            stats[rarity as keyof typeof stats]++;
+          }
+        });
+
+        setCardsCollected(stats);
+
+        // Set favorite cards as inventory preview
+        setInventoryPreview(favoriteCards || []);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetch();
+  }, [user]);
 
   const rarityColors: Record<string, string> = {
     common: "bg-gray-200 text-gray-700",
@@ -69,12 +93,19 @@ const Profile = () => {
     mythic: "Mythic",
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading profile...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
-          <CreateCardTestButton />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -150,32 +181,38 @@ const Profile = () => {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {inventoryPreview.map((card, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-gray-300 transition-colors"
-                >
-                  <div className="aspect-square bg-gradient-to-b from-blue-200 to-blue-300 rounded mb-2 overflow-hidden">
-                    <img
-                      src={card.picture}
-                      alt={card.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                      }}
-                    />
-                  </div>
-                  <div className="text-xs font-semibold text-gray-800 truncate mb-1">
-                    {card.name}
-                  </div>
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[0.5rem] font-bold uppercase ${rarityColors[card.rarity]}`}
+              {inventoryPreview.length > 0 ? (
+                inventoryPreview.slice(0, 4).map((card, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-gray-300 transition-colors"
                   >
-                    {card.rarity}
-                  </span>
+                    <div className="aspect-square bg-gradient-to-b from-blue-200 to-blue-300 rounded mb-2 overflow-hidden">
+                      <img
+                        src={card.picture || ""}
+                        alt={card.name || "Card"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs font-semibold text-gray-800 truncate mb-1">
+                      {card.name || "Unknown Card"}
+                    </div>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[0.5rem] font-bold uppercase ${rarityColors[card.rarity] || rarityColors.common}`}
+                    >
+                      {card.rarity || "common"}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center text-gray-500 py-4">
+                  No favorite cards yet
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

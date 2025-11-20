@@ -1,1 +1,3 @@
 *.log
+anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
+*.log
