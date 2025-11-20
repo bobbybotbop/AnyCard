@@ -1,3 +1,4 @@
+import DailyPacks from "../components/DailyPacks";
 import Set from "../components/Set";
 import { cardSets } from "../data/cards";
 
@@ -8,7 +9,9 @@ const HomePage = () => {
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
           AnyCard Trading Card Game
         </h1>
-
+        <div className="h-100">
+          <DailyPacks />
+        </div>
         {/* Sets Section */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
