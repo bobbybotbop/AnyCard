@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authProvider";
 import { getUserData } from "../api/cards";
-
+import WikipediaTestButton from "../components/WikipediaTestButton";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -107,6 +107,7 @@ const Profile = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
         </div>
+        <WikipediaTestButton />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Profile Info Card */}
@@ -202,7 +203,9 @@ const Profile = () => {
                       {card.name || "Unknown Card"}
                     </div>
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[0.5rem] font-bold uppercase ${rarityColors[card.rarity] || rarityColors.common}`}
+                      className={`px-1.5 py-0.5 rounded text-[0.5rem] font-bold uppercase ${
+                        rarityColors[card.rarity] || rarityColors.common
+                      }`}
                     >
                       {card.rarity || "common"}
                     </span>
