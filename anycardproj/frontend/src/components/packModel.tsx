@@ -8,6 +8,7 @@ import {
   MeshStandardMaterial as StandardMaterial,
   MathUtils as mu,
   SRGBColorSpace,
+  CanvasTexture,
 } from "three";
 
 // Import textures using Vite's asset handling with ?url suffix to get the URL string
@@ -15,6 +16,190 @@ import diffuseTextureUrl from "../assets/trading-card-pack/textures/DIFFUSE.png?
 import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORMAL.png?url";
 // Import the 3D model - useGLTF can handle both imported URLs and string paths
 import cardpackModelUrl from "../assets/cardpack2.glb?url";
+
+// Utility function to composite overlay image over diffuse texture using Canvas
+async function compositeTextures(
+  diffuseTextureUrl: string,
+  overlayImageUrl: string,
+  overlayX: number,
+  overlayY: number,
+  overlayWidth: number,
+  overlayHeight: number
+): Promise<{
+  texture: Texture;
+  canvasDataUrl: string;
+  canvasWidth: number;
+  canvasHeight: number;
+}> {
+  return new Promise((resolve, reject) => {
+    // Load both images
+    const baseImage = new Image();
+    const overlayImage = new Image();
+
+    // Set crossOrigin to handle CORS issues
+    baseImage.crossOrigin = "anonymous";
+    overlayImage.crossOrigin = "anonymous";
+
+    let baseLoaded = false;
+    let overlayLoaded = false;
+
+    const checkAndComposite = () => {
+      if (baseLoaded && overlayLoaded) {
+        // Create canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = baseImage.width;
+        canvas.height = baseImage.height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Failed to get canvas context"));
+          return;
+        }
+
+        // Draw base diffuse texture
+        ctx.drawImage(baseImage, 0, 0);
+
+        // Calculate overlay area bounds in pixels
+        const overlayAreaXPx = overlayX * baseImage.width;
+        const overlayAreaYPx = overlayY * baseImage.height;
+        const overlayAreaWidthPx = overlayWidth * baseImage.width;
+        const overlayAreaHeightPx = overlayHeight * baseImage.height;
+
+        // Calculate the aspect ratios
+        const overlayImageAspect = overlayImage.width / overlayImage.height;
+        const overlayAreaAspect = overlayAreaWidthPx / overlayAreaHeightPx;
+
+        // Calculate the size to fit the overlay image within the overlay area while maintaining aspect ratio
+        // Use "contain" behavior: scale down to fit entirely within bounds without cutting off
+        let drawWidth: number;
+        let drawHeight: number;
+
+        if (overlayImageAspect > overlayAreaAspect) {
+          // Overlay image is wider relative to the area - fit to width to prevent horizontal cutoff
+          drawWidth = overlayAreaWidthPx;
+          drawHeight = overlayAreaWidthPx / overlayImageAspect;
+        } else {
+          // Overlay image is taller relative to the area - fit to height to prevent vertical cutoff
+          drawHeight = overlayAreaHeightPx;
+          drawWidth = overlayAreaHeightPx * overlayImageAspect;
+        }
+
+        // Ensure dimensions don't exceed the overlay area bounds (safety check)
+        drawWidth = Math.min(drawWidth, overlayAreaWidthPx);
+        drawHeight = Math.min(drawHeight, overlayAreaHeightPx);
+
+        // Position the overlay image at the top-left corner of the overlay area
+        const drawX = overlayAreaXPx;
+        const drawY = overlayAreaYPx;
+
+        // Debug logging
+        console.log("Drawing overlay:", {
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight,
+          overlayImageWidth: overlayImage.width,
+          overlayImageHeight: overlayImage.height,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+        });
+
+        // Draw overlay image at the top-left of the specified area
+        ctx.drawImage(overlayImage, drawX, drawY, drawWidth, drawHeight);
+
+        // Get canvas as data URL for visualization
+        const canvasDataUrl = canvas.toDataURL("image/png");
+
+        // Create texture from canvas
+        // Ensure canvas has valid dimensions
+        if (canvas.width === 0 || canvas.height === 0) {
+          reject(new Error("Canvas has invalid dimensions"));
+          return;
+        }
+
+        // Use TextureLoader to load from data URL - this creates a proper Texture with Image
+        // This avoids the CanvasTexture .complete property issue
+        const loader = new TextureLoader();
+        loader.load(
+          canvasDataUrl,
+          (texture) => {
+            texture.flipY = false;
+            texture.colorSpace = SRGBColorSpace;
+            texture.needsUpdate = true;
+
+            console.log("Canvas texture created successfully from data URL", {
+              textureType: texture.constructor.name,
+              canvasWidth: canvas.width,
+              canvasHeight: canvas.height,
+            });
+
+            resolve({
+              texture,
+              canvasDataUrl,
+              canvasWidth: canvas.width,
+              canvasHeight: canvas.height,
+            });
+          },
+          undefined,
+          (error) => {
+            console.error(
+              "Failed to load texture from canvas data URL:",
+              error
+            );
+            // Fallback: try CanvasTexture directly
+            console.warn("Falling back to CanvasTexture");
+            try {
+              const texture = new CanvasTexture(canvas);
+              texture.flipY = false;
+              texture.colorSpace = SRGBColorSpace;
+              texture.needsUpdate = true;
+
+              resolve({
+                texture,
+                canvasDataUrl,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+              });
+            } catch (fallbackError) {
+              reject(fallbackError);
+            }
+          }
+        );
+      }
+    };
+
+    baseImage.onload = () => {
+      baseLoaded = true;
+      console.log("Base image loaded:", {
+        width: baseImage.width,
+        height: baseImage.height,
+      });
+      checkAndComposite();
+    };
+    baseImage.onerror = (error) => {
+      console.error("Failed to load base diffuse texture:", error);
+      reject(new Error("Failed to load base diffuse texture"));
+    };
+
+    overlayImage.onload = () => {
+      overlayLoaded = true;
+      console.log("Overlay image loaded:", {
+        width: overlayImage.width,
+        height: overlayImage.height,
+        src: overlayImage.src,
+      });
+      checkAndComposite();
+    };
+    overlayImage.onerror = (error) => {
+      console.error("Failed to load overlay image:", error, overlayImageUrl);
+      reject(new Error("Failed to load overlay image"));
+    };
+
+    // Start loading images
+    baseImage.src = diffuseTextureUrl;
+    overlayImage.src = overlayImageUrl;
+  });
+}
 
 // Component to load and render the pack model
 // Can be used standalone inside a Canvas or via PackModel wrapper
@@ -29,6 +214,12 @@ export function PackModelMesh({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   rotationCenter,
+  overlayImageUrl,
+  overlayX = 0,
+  overlayY = 0,
+  overlayWidth = 1,
+  overlayHeight = 1,
+  onCanvasReady,
 }: {
   modelPath: string;
   diffuseTexture: string;
@@ -40,10 +231,22 @@ export function PackModelMesh({
   position?: [number, number, number];
   rotation?: [number, number, number];
   rotationCenter?: [number, number, number]; // Center point for rotation (pivot)
+  overlayImageUrl?: string; // Optional overlay image URL
+  overlayX?: number; // Overlay X position (normalized 0-1)
+  overlayY?: number; // Overlay Y position (normalized 0-1)
+  overlayWidth?: number; // Overlay width (normalized 0-1)
+  overlayHeight?: number; // Overlay height (normalized 0-1)
+  onCanvasReady?: (
+    canvasDataUrl: string,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => void; // Callback to expose canvas data URL and dimensions
 }) {
   const { scene: originalScene } = useGLTF(modelPath);
   const meshRef = useRef<Mesh>(null);
   const groupRef = useRef<any>(null);
+  const texturesRef = useRef<Texture[]>([]);
+  const isMountedRef = useRef(true);
 
   // Clone the scene for each instance so multiple models can be rendered independently
   // Without cloning, all instances would share the same Three.js object and appear at the same position
@@ -67,46 +270,197 @@ export function PackModelMesh({
   useEffect(() => {
     //faces card fowards to the user, add to this initial value later
 
+    isMountedRef.current = true;
     const loader = new TextureLoader();
+
+    // Dispose of old textures before loading new ones
+    texturesRef.current.forEach((texture) => {
+      texture.dispose();
+    });
+    texturesRef.current = [];
 
     scene.traverse((child) => {
       if (child instanceof Mesh) {
         const mesh = child as Mesh;
         if (mesh.material) {
-          // Load diffuse texture
-          loader.load(diffuseTexture, (diffuseTex: Texture) => {
-            diffuseTex.flipY = false;
-            // Set color space to sRGB for more vibrant colors
-            diffuseTex.colorSpace = SRGBColorSpace;
+          // Store reference to old texture for cleanup
+          const applyTexture = (newTex: Texture, normalTex: Texture) => {
+            if (!isMountedRef.current) {
+              newTex.dispose();
+              normalTex.dispose();
+              return;
+            }
 
-            // Load normal texture
-            loader.load(normalTexture, (normalTex: Texture) => {
-              normalTex.flipY = false;
+            // Validate textures before applying
+            if (!newTex) {
+              console.error("Cannot apply undefined texture");
+              return;
+            }
+            if (!normalTex) {
+              console.error("Cannot apply undefined normal texture");
+              return;
+            }
 
-              // Apply textures to material
-              if (mesh.material instanceof StandardMaterial) {
-                mesh.material.map = diffuseTex;
-                mesh.material.normalMap = normalTex;
-                // Enhance color saturation by adjusting material properties
-                mesh.material.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
-                mesh.material.needsUpdate = true;
-              } else if (Array.isArray(mesh.material)) {
-                mesh.material.forEach((mat: Material) => {
-                  if (mat instanceof StandardMaterial) {
-                    mat.map = diffuseTex;
-                    mat.normalMap = normalTex;
-                    // Enhance color saturation by adjusting material properties
-                    mat.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
-                    mat.needsUpdate = true;
-                  }
-                });
+            texturesRef.current.push(newTex);
+
+            // Apply textures to material
+            if (mesh.material instanceof StandardMaterial) {
+              // Dispose old texture if it exists
+              if (mesh.material.map && mesh.material.map !== newTex) {
+                const oldTex = mesh.material.map;
+                if (!texturesRef.current.includes(oldTex)) {
+                  oldTex.dispose();
+                }
               }
+              mesh.material.map = newTex;
+              mesh.material.normalMap = normalTex;
+              // Enhance color saturation by adjusting material properties
+              mesh.material.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
+              mesh.material.needsUpdate = true;
+              // Ensure texture is updated
+              if (newTex instanceof CanvasTexture) {
+                newTex.needsUpdate = true;
+              }
+            } else if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((mat: Material) => {
+                if (mat instanceof StandardMaterial) {
+                  // Dispose old texture if it exists
+                  if (mat.map && mat.map !== newTex) {
+                    const oldTex = mat.map;
+                    if (!texturesRef.current.includes(oldTex)) {
+                      oldTex.dispose();
+                    }
+                  }
+                  mat.map = newTex;
+                  mat.normalMap = normalTex;
+                  // Enhance color saturation by adjusting material properties
+                  mat.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
+                  mat.needsUpdate = true;
+                  // Ensure texture is updated
+                  if (newTex instanceof CanvasTexture) {
+                    newTex.needsUpdate = true;
+                  }
+                }
+              });
+            }
+          };
+
+          // Check if overlay image is provided
+          if (overlayImageUrl) {
+            // Composite overlay with diffuse texture
+            compositeTextures(
+              diffuseTexture,
+              overlayImageUrl,
+              overlayX,
+              overlayY,
+              overlayWidth,
+              overlayHeight
+            )
+              .then(
+                ({
+                  texture: compositedTex,
+                  canvasDataUrl,
+                  canvasWidth,
+                  canvasHeight,
+                }) => {
+                  if (!isMountedRef.current) {
+                    compositedTex.dispose();
+                    return;
+                  }
+
+                  // Call callback with canvas data URL and dimensions if provided
+                  if (onCanvasReady) {
+                    onCanvasReady(canvasDataUrl, canvasWidth, canvasHeight);
+                  }
+
+                  // Load normal texture
+                  loader.load(normalTexture, (normalTex: Texture) => {
+                    if (!isMountedRef.current) {
+                      compositedTex.dispose();
+                      normalTex.dispose();
+                      return;
+                    }
+
+                    normalTex.flipY = false;
+                    console.log("Applying composited texture to material");
+                    applyTexture(compositedTex, normalTex);
+                    console.log("Texture applied successfully");
+                  });
+                }
+              )
+              .catch((error) => {
+                console.error("Failed to composite textures:", error);
+                if (!isMountedRef.current) return;
+
+                // Fallback to regular diffuse texture loading
+                loader.load(diffuseTexture, (diffuseTex: Texture) => {
+                  if (!isMountedRef.current) {
+                    diffuseTex.dispose();
+                    return;
+                  }
+
+                  diffuseTex.flipY = false;
+                  diffuseTex.colorSpace = SRGBColorSpace;
+
+                  loader.load(normalTexture, (normalTex: Texture) => {
+                    if (!isMountedRef.current) {
+                      diffuseTex.dispose();
+                      normalTex.dispose();
+                      return;
+                    }
+
+                    normalTex.flipY = false;
+                    applyTexture(diffuseTex, normalTex);
+                  });
+                });
+              });
+          } else {
+            // No overlay - use existing logic to load diffuse texture directly
+            loader.load(diffuseTexture, (diffuseTex: Texture) => {
+              if (!isMountedRef.current) {
+                diffuseTex.dispose();
+                return;
+              }
+
+              diffuseTex.flipY = false;
+              // Set color space to sRGB for more vibrant colors
+              diffuseTex.colorSpace = SRGBColorSpace;
+
+              // Load normal texture
+              loader.load(normalTexture, (normalTex: Texture) => {
+                if (!isMountedRef.current) {
+                  diffuseTex.dispose();
+                  normalTex.dispose();
+                  return;
+                }
+
+                normalTex.flipY = false;
+                applyTexture(diffuseTex, normalTex);
+              });
             });
-          });
+          }
         }
       }
     });
-  }, [scene, diffuseTexture, normalTexture]);
+
+    // Cleanup function to dispose textures
+    return () => {
+      isMountedRef.current = false;
+      texturesRef.current.forEach((texture) => {
+        texture.dispose();
+      });
+      texturesRef.current = [];
+    };
+  }, [
+    scene,
+    diffuseTexture,
+    normalTexture,
+    overlayImageUrl,
+    overlayX,
+    overlayY,
+    overlayWidth,
+    overlayHeight,
+  ]);
 
   // Handle scale - can be a number or array
   const scaleValue = Array.isArray(scale) ? scale : [scale, scale, scale];
@@ -229,6 +583,18 @@ interface PackModelProps {
   minDistance?: number; // Minimum zoom distance (default: 3)
   maxDistance?: number; // Maximum zoom distance (default: 10)
   interactive?: boolean; // Enable/disable all user input (default: true)
+  // Overlay settings
+  overlayImageUrl?: string; // Optional overlay image URL to composite over diffuse texture
+  overlayX?: number; // Overlay X position (normalized 0-1, default: 0)
+  overlayY?: number; // Overlay Y position (normalized 0-1, default: 0)
+  overlayWidth?: number; // Overlay width (normalized 0-1, default: 1)
+  overlayHeight?: number; // Overlay height (normalized 0-1, default: 1)
+  // Canvas callback
+  onCanvasReady?: (
+    canvasDataUrl: string,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => void; // Callback to expose canvas data URL and dimensions
 }
 
 export default function PackModel({
@@ -251,6 +617,12 @@ export default function PackModel({
   minDistance = 3,
   maxDistance = 10,
   interactive = true,
+  overlayImageUrl,
+  overlayX = 0,
+  overlayY = 0,
+  overlayWidth = 1,
+  overlayHeight = 1,
+  onCanvasReady,
 }: PackModelProps) {
   // Default model path - using cardpack2.glb from assets folder
   // You can override this by passing a custom modelPath prop
@@ -287,6 +659,12 @@ export default function PackModel({
             position={position}
             rotation={rotation}
             rotationCenter={rotationCenter}
+            overlayImageUrl={overlayImageUrl}
+            overlayX={overlayX}
+            overlayY={overlayY}
+            overlayWidth={overlayWidth}
+            overlayHeight={overlayHeight}
+            onCanvasReady={onCanvasReady}
           />
         </Suspense>
 
