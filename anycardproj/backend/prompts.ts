@@ -1,9 +1,9 @@
 export const generateRandomCardSetPrompt = `You are a creative card game designer. Generate a complete card set based on a random theme that could be found on Wikipedia.
 
 INSTRUCTIONS:
-1. Choose a random, interesting theme from Wikipedia (examples: "Ancient Egyptian Gods", "Famous Scientists", "Medieval Weapons", "Ocean Creatures", "Space Exploration", "Renaissance Artists", "Mythical Creatures", "Historical Battles", etc.). Be creative and pick something interesting!
+1. Choose a random, interesting theme from Wikipedia (examples: "Appliances", "Food", "electronics", "Famous People", etc.). Be creative and pick something interesting and not limited to the examples!
 
-2. Create a set name that reflects the theme (e.g., "Pharaohs of the Nile", "Masters of Science", "Weapons of War", etc.)
+2. Create an epic set name that reflects the theme (e.g., "Appliance World", "Yummy Foods", "Electrifying Electronics" etc.)
 
 3. Generate exactly 21 cards total with the following distribution:
    - 6 Common cards
@@ -14,7 +14,9 @@ INSTRUCTIONS:
    - 1 Mythic card
 
 4. For each card, ensure:
-   - The name is a real person, place, object, or concept that exists on Wikipedia related to your theme
+   - The name MUST be an exact Wikipedia article title that actually exists on Wikipedia. Use the exact article title as it appears on Wikipedia (case-sensitive). Do NOT create fictional names or make up entities.
+   - Only use well-known, verifiable entities that you are certain have Wikipedia articles. When in doubt, choose more famous/prominent examples.
+   - All card names must be directly related to your chosen theme
    - HP scales with rarity: Common (30-50), Uncommon (45-70), Rare (65-90), Epic (85-120), Legendary (110-150), Mythic (140-200)
    - Attack damage scales appropriately: Common (5-15 for first, 20-40 for second), Uncommon (10-20/30-50), Rare (15-25/40-60), Epic (20-30/50-75), Legendary (25-35/60-90), Mythic (30-40/70-100)
    - Attack names should be thematic and creative, related to the card's subject
@@ -41,8 +43,9 @@ INSTRUCTIONS:
 
 IMPORTANT:
 - Use exact rarity strings: "common", "uncom", "rare", "epic", "legend", "mythic"
+- CRITICAL: All card names MUST be actual Wikipedia article titles that exist. Use exact article titles as they appear on Wikipedia. Do not invent, fictionalize, or approximate names.
+- Prefer well-known, prominent entities that are guaranteed to have Wikipedia articles (e.g., famous people, major cities, well-known products, established concepts)
 - Ensure all cards are related to your theme
-- Make sure all card names could realistically be found on Wikipedia
 - Balance the stats appropriately - higher rarity should be noticeably stronger
 - Return ONLY valid JSON, no additional text or explanation
 - Generate exactly 21 cards in the specified rarity distribution`;

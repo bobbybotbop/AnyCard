@@ -21,6 +21,7 @@ const app: Express = express();
 
 const hostname = "0.0.0.0";
 const port = 8080;
+const WIKIPEDIA_RATE_LIMIT_DELAY = 2000;
 
 app.use(cors());
 app.use(express.json());
@@ -140,7 +141,9 @@ async function searchWikipedia(query: string): Promise<WikipediaResult> {
         }
       } else if (summaryResponse.status === 429) {
         // Rate limited - wait before retry
+
         const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+        console.log("wiki call failed, waiting " + waitTime);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
         continue;
       }
@@ -214,9 +217,9 @@ async function callOpenRouter(input: string): Promise<OpenRouterResponse> {
     "Content-Type": "application/json",
   };
 
-  // Request body for Grok 4.1 Fast (free)
+  // Request body for Claude 3 Haiku
   const payload = {
-    model: "x-ai/grok-4.1-fast:free",
+    model: "anthropic/claude-3-haiku",
     messages: [
       {
         role: "user",
@@ -261,35 +264,41 @@ interface ParsedSetData {
   }>;
 }
 
+// Commented out function - kept in case we need randomness logic later
+// async function addRandomnessToPrompt(basePrompt: string): string {
+//   // Generate a random seed/number to add variation to the prompt
+//   const randomSeed = Math.floor(Math.random() * 10000);
+//   const randomThemes = [
+//     "Medieval Weapons",
+//     "Ocean Creatures",
+//     "Historical Battles",
+//     "World War II Aircraft",
+//     "Ancient Civilizations",
+//     "Appliances",
+//     "Furniture",
+//     "Cookware",
+//     "Tableware",
+//     "Bedding",
+//     "Lighting",
+//     "Electronics",
+//     "Tools",
+//     "Cleaning Supplies",
+//     "Storage",
+//     "Decor ",
+//     "Textiles",
+//     "Stationery",
+//     "Utensils",
+//   ];
+//   const randomThemeHint =
+//     randomThemes[Math.floor(Math.random() * randomThemes.length)];
+//
+//   const promptWithRandomness = `${basePrompt}\n\nIMPORTANT: Use a DIFFERENT theme than "${randomThemeHint}". Be creative and choose something unique. Random seed: ${randomSeed}`;
+//   return promptWithRandomness;
+// }
+
 async function createRandomSet(): Promise<Set> {
-  // Generate a random seed/number to add variation to the prompt
-  const randomSeed = Math.floor(Math.random() * 10000);
-  const randomThemes = [
-    "Ancient Egyptian Gods",
-    "Famous Scientists",
-    "Medieval Weapons",
-    "Ocean Creatures",
-    "Space Exploration",
-    "Renaissance Artists",
-    "Mythical Creatures",
-    "Historical Battles",
-    "World War II Aircraft",
-    "Greek Mythology",
-    "Dinosaur Species",
-    "Famous Inventors",
-    "Roman Emperors",
-    "Shakespeare Characters",
-    "Norse Mythology",
-    "Ancient Civilizations",
-    "Famous Explorers",
-    "Classical Composers",
-  ];
-  const randomThemeHint =
-    randomThemes[Math.floor(Math.random() * randomThemes.length)];
-
-  const promptWithRandomness = `${generateRandomCardSetPrompt}\n\nIMPORTANT: Use a DIFFERENT theme than "${randomThemeHint}". Be creative and choose something unique. Random seed: ${randomSeed}`;
-
-  const result = await callOpenRouter(promptWithRandomness);
+  // Simply call openrouter with the original prompt
+  const result = await callOpenRouter(generateRandomCardSetPrompt);
   if (!result || !result.choices || result.choices.length === 0) {
     throw new Error("No response received from OpenRouter API");
   }
@@ -301,7 +310,7 @@ async function createRandomSet(): Promise<Set> {
 
   try {
     const parsedData: ParsedSetData = JSON.parse(content);
-
+    console.log("!!finished calling openrouter, now calling wiki");
     // Get cover image for the theme
     let coverImage = "";
     try {
@@ -321,7 +330,7 @@ async function createRandomSet(): Promise<Set> {
       let picture = "";
       try {
         const cardResult = await searchWikipedia(card.name);
-        picture = cardResult.imageUrl || "cardNotFound";
+        picture = cardResult.imageUrl || "doesNotExistOnWiki";
       } catch (error) {
         console.error(`Failed to get image for card "${card.name}":`, error);
         picture = "cardNotFound";
@@ -329,7 +338,9 @@ async function createRandomSet(): Promise<Set> {
 
       // Add a small delay between requests to avoid rate limiting (except for the last card)
       if (i < parsedData.cards.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // 200ms delay
+        await new Promise((resolve) =>
+          setTimeout(resolve, WIKIPEDIA_RATE_LIMIT_DELAY)
+        );
       }
 
       // Ensure we have exactly 2 attacks
@@ -352,6 +363,23 @@ async function createRandomSet(): Promise<Set> {
       });
     }
 
+    // If coverImage is not found, use a randomly selected image from successfully found card images
+    if (!coverImage) {
+      const successfulCardImages = transformedCards
+        .map((card) => card.picture)
+        .filter((picture) => picture && picture !== "cardNotFound");
+
+      if (successfulCardImages.length > 0) {
+        const randomIndex = Math.floor(
+          Math.random() * successfulCardImages.length
+        );
+        coverImage = successfulCardImages[randomIndex];
+        console.log(
+          `Cover image not found for theme "${parsedData.theme}", using random card image: ${coverImage}`
+        );
+      }
+    }
+
     const setObject: Set = {
       name: parsedData.setName,
       theme: parsedData.theme,
@@ -359,7 +387,7 @@ async function createRandomSet(): Promise<Set> {
       cards: transformedCards,
     };
 
-    await createDocumentWithId(setObject.name, "cards", setObject);
+    await createDocumentWithId("cards", setObject.name, setObject);
     console.log(setObject);
     return setObject;
   } catch (error) {

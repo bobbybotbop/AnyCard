@@ -105,7 +105,7 @@ const WikipediaTestButton: React.FC = () => {
         }}
       >
         <h4 style={{ marginBottom: "10px" }}>
-          OpenRouter (Grok 4.1 Fast) Test
+          OpenRouter (Claude 3 Haiku) Test
         </h4>
         <div style={{ marginBottom: "10px" }}>
           <input
