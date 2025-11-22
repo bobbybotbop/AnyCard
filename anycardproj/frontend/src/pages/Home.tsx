@@ -29,11 +29,11 @@ const HomePage = () => {
 
         <div className="h-150">
           <PackModel
-            overlayImageUrl="https://upload.wikimedia.org/wikipedia/en/a/a6/Pok%C3%A9mon_Pikachu_art.png"
-            overlayX={0.35}
-            overlayY={0.3}
-            overlayWidth={0.4}
-            overlayHeight={0.4}
+            overlayImageUrl="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Litoria_infrafrenata_-_Julatten.jpg/960px-Litoria_infrafrenata_-_Julatten.jpg"
+            overlayX={0}
+            overlayY={0}
+            overlayWidth={1}
+            overlayHeight={1}
             onCanvasReady={handleCanvasReady}
           ></PackModel>
         </div>

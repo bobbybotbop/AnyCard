@@ -17,6 +17,13 @@ import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORM
 // Import the 3D model - useGLTF can handle both imported URLs and string paths
 import cardpackModelUrl from "../assets/cardpack2.glb?url";
 
+// Background overlay constants (position and dimensions in pixels)
+// These values are relative to the canvas size
+const BACKGROUND_X = 665; // X position in pixels
+const BACKGROUND_Y = 124; // Y position in pixels
+const BACKGROUND_WIDTH = 580; // Width in pixels
+const BACKGROUND_HEIGHT = 850; // Height in pixels
+
 // Utility function to composite overlay image over diffuse texture using Canvas
 async function compositeTextures(
   diffuseTextureUrl: string,
@@ -30,6 +37,7 @@ async function compositeTextures(
   canvasDataUrl: string;
   canvasWidth: number;
   canvasHeight: number;
+  canvas: HTMLCanvasElement;
 }> {
   return new Promise((resolve, reject) => {
     // Load both images
@@ -59,38 +67,47 @@ async function compositeTextures(
         // Draw base diffuse texture
         ctx.drawImage(baseImage, 0, 0);
 
-        // Calculate overlay area bounds in pixels
-        const overlayAreaXPx = overlayX * baseImage.width;
-        const overlayAreaYPx = overlayY * baseImage.height;
-        const overlayAreaWidthPx = overlayWidth * baseImage.width;
-        const overlayAreaHeightPx = overlayHeight * baseImage.height;
+        // Draw background behind overlay image
+        ctx.fillStyle = "#000000"; // Black color
+        ctx.fillRect(
+          BACKGROUND_X,
+          BACKGROUND_Y,
+          BACKGROUND_WIDTH,
+          BACKGROUND_HEIGHT
+        );
 
-        // Calculate the aspect ratios
+        // Calculate overlay size based on 275x275 pixel limit while maintaining aspect ratio
+        const MAX_SIZE = 500;
         const overlayImageAspect = overlayImage.width / overlayImage.height;
-        const overlayAreaAspect = overlayAreaWidthPx / overlayAreaHeightPx;
 
-        // Calculate the size to fit the overlay image within the overlay area while maintaining aspect ratio
-        // Use "contain" behavior: scale down to fit entirely within bounds without cutting off
-        let drawWidth: number;
-        let drawHeight: number;
+        // Calculate scale factor to fit within 275x275
+        // Scale up if smaller, scale down if larger until one dimension reaches 275px
+        const scaleFactor = Math.min(
+          MAX_SIZE / overlayImage.width,
+          MAX_SIZE / overlayImage.height
+        );
 
-        if (overlayImageAspect > overlayAreaAspect) {
-          // Overlay image is wider relative to the area - fit to width to prevent horizontal cutoff
-          drawWidth = overlayAreaWidthPx;
-          drawHeight = overlayAreaWidthPx / overlayImageAspect;
-        } else {
-          // Overlay image is taller relative to the area - fit to height to prevent vertical cutoff
-          drawHeight = overlayAreaHeightPx;
-          drawWidth = overlayAreaHeightPx * overlayImageAspect;
+        // Calculate target dimensions maintaining aspect ratio
+        let targetWidth = overlayImage.width * scaleFactor;
+        let targetHeight = overlayImage.height * scaleFactor;
+
+        // Ensure we don't exceed 275px in either dimension
+        if (targetWidth > MAX_SIZE) {
+          targetWidth = MAX_SIZE;
+          targetHeight = MAX_SIZE / overlayImageAspect;
+        }
+        if (targetHeight > MAX_SIZE) {
+          targetHeight = MAX_SIZE;
+          targetWidth = MAX_SIZE * overlayImageAspect;
         }
 
-        // Ensure dimensions don't exceed the overlay area bounds (safety check)
-        drawWidth = Math.min(drawWidth, overlayAreaWidthPx);
-        drawHeight = Math.min(drawHeight, overlayAreaHeightPx);
+        // Calculate centered position on the canvas
+        const drawX = (baseImage.width - targetWidth) / 2;
+        const drawY = (baseImage.height - targetHeight) / 2;
 
-        // Position the overlay image at the top-left corner of the overlay area
-        const drawX = overlayAreaXPx;
-        const drawY = overlayAreaYPx;
+        // Use the calculated dimensions
+        const drawWidth = targetWidth;
+        const drawHeight = targetHeight;
 
         // Debug logging
         console.log("Drawing overlay:", {
@@ -117,54 +134,31 @@ async function compositeTextures(
           return;
         }
 
-        // Use TextureLoader to load from data URL - this creates a proper Texture with Image
-        // This avoids the CanvasTexture .complete property issue
-        const loader = new TextureLoader();
-        loader.load(
+        // Use CanvasTexture directly - it needs the canvas to remain in memory
+        // Store a reference to the canvas to prevent garbage collection
+        const texture = new CanvasTexture(canvas);
+        texture.flipY = false;
+        texture.colorSpace = SRGBColorSpace;
+        texture.needsUpdate = true;
+
+        // Store reference to canvas so it's not garbage collected
+        // CanvasTexture stores the canvas in its image property, but we keep an extra reference
+        (texture as any)._canvas = canvas;
+
+        console.log("Canvas texture created successfully", {
+          textureType: texture.constructor.name,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          hasImage: !!(texture as any).image,
+        });
+
+        resolve({
+          texture,
           canvasDataUrl,
-          (texture) => {
-            texture.flipY = false;
-            texture.colorSpace = SRGBColorSpace;
-            texture.needsUpdate = true;
-
-            console.log("Canvas texture created successfully from data URL", {
-              textureType: texture.constructor.name,
-              canvasWidth: canvas.width,
-              canvasHeight: canvas.height,
-            });
-
-            resolve({
-              texture,
-              canvasDataUrl,
-              canvasWidth: canvas.width,
-              canvasHeight: canvas.height,
-            });
-          },
-          undefined,
-          (error) => {
-            console.error(
-              "Failed to load texture from canvas data URL:",
-              error
-            );
-            // Fallback: try CanvasTexture directly
-            console.warn("Falling back to CanvasTexture");
-            try {
-              const texture = new CanvasTexture(canvas);
-              texture.flipY = false;
-              texture.colorSpace = SRGBColorSpace;
-              texture.needsUpdate = true;
-
-              resolve({
-                texture,
-                canvasDataUrl,
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height,
-              });
-            } catch (fallbackError) {
-              reject(fallbackError);
-            }
-          }
-        );
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          canvas: canvas, // Return canvas to keep it alive
+        });
       }
     };
 
@@ -246,11 +240,26 @@ export function PackModelMesh({
   const meshRef = useRef<Mesh>(null);
   const groupRef = useRef<any>(null);
   const texturesRef = useRef<Texture[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement[]>([]);
   const isMountedRef = useRef(true);
 
   // Clone the scene for each instance so multiple models can be rendered independently
   // Without cloning, all instances would share the same Three.js object and appear at the same position
-  const scene = useMemo(() => originalScene.clone(), [originalScene]);
+  // Also clone materials to prevent texture sharing between instances
+  const scene = useMemo(() => {
+    const clonedScene = originalScene.clone();
+    // Clone materials to ensure each instance has its own material and textures
+    clonedScene.traverse((child) => {
+      if (child instanceof Mesh && child.material) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => mat.clone());
+        } else {
+          child.material = child.material.clone();
+        }
+      }
+    });
+    return clonedScene;
+  }, [originalScene]);
 
   // Rotate the model automatically
   useFrame((state, delta) => {
@@ -278,6 +287,9 @@ export function PackModelMesh({
       texture.dispose();
     });
     texturesRef.current = [];
+
+    // Clear old canvas references (canvases are kept alive by CanvasTexture)
+    canvasRef.current = [];
 
     scene.traverse((child) => {
       if (child instanceof Mesh) {
@@ -362,11 +374,15 @@ export function PackModelMesh({
                   canvasDataUrl,
                   canvasWidth,
                   canvasHeight,
+                  canvas,
                 }) => {
                   if (!isMountedRef.current) {
                     compositedTex.dispose();
                     return;
                   }
+
+                  // Store canvas reference to prevent garbage collection
+                  canvasRef.current.push(canvas);
 
                   // Call callback with canvas data URL and dimensions if provided
                   if (onCanvasReady) {
