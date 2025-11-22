@@ -111,3 +111,19 @@ export const callOpenRouter = async (
 
   return response.json();
 };
+
+export const createRandomSet = async (): Promise<any> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/createRandomSet`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create random set");
+  }
+
+  return response.json();
+};

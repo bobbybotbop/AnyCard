@@ -1,9 +1,18 @@
 import path from "path";
 import express, { Express } from "express";
 import cors from "cors";
-import { WeatherResponse, newUser, userData } from "@full-stack/types";
+import {
+  WeatherResponse,
+  newUser,
+  userData,
+  Set,
+  Card,
+  Rarity,
+  Attack,
+} from "@full-stack/types";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { generateRandomCardSetPrompt } from "./prompts";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -35,9 +44,21 @@ async function createDocument(collection: string, data: any) {
   }
 }
 
+async function createDocumentWithId(
+  collection: string,
+  documentId: string,
+  data: any
+): Promise<void> {
+  try {
+    await db.collection(collection).doc(documentId).set(data);
+  } catch (error) {
+    throw error;
+  }
+}
+
 async function createUser(data: newUser): Promise<userData | null> {
   try {
-    const userRef = await db.collection("users").doc(data.UID).set({
+    await createDocumentWithId("users", data.UID, {
       username: data.username,
       email: data.email,
       createdAt: new Date().toString(),
@@ -45,7 +66,7 @@ async function createUser(data: newUser): Promise<userData | null> {
       cards: [],
       favoriteCards: [],
     });
-    return userRef;
+    return null;
   } catch (error) {
     throw error;
   }
@@ -69,6 +90,285 @@ async function getUserData(uid: string): Promise<userData | null> {
     };
   } catch (error) {
     throw error;
+  }
+}
+
+interface WikipediaResult {
+  title: string;
+  imageUrl: string | null;
+}
+
+async function searchWikipedia(query: string): Promise<WikipediaResult> {
+  // Step 1: Search for the topic
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+    query
+  )}&format=json&origin=*`;
+  const searchResponse = await fetch(searchUrl);
+  const searchData = (await searchResponse.json()) as any;
+
+  if (
+    !searchData.query ||
+    !searchData.query.search ||
+    searchData.query.search.length === 0
+  ) {
+    throw new Error("No results found");
+  }
+
+  // Get the first result's title
+  const firstResult = searchData.query.search[0];
+  const title = firstResult.title;
+
+  // Step 2: Try to get page summary with image (with retry logic)
+  let imageUrl: string | null = null;
+  const maxRetries = 3;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
+        title
+      )}`;
+      const summaryResponse = await fetch(summaryUrl);
+
+      if (summaryResponse.ok) {
+        const summaryData = (await summaryResponse.json()) as any;
+        imageUrl = summaryData.thumbnail?.source || null;
+        if (imageUrl) {
+          return {
+            title: summaryData.title || title,
+            imageUrl: imageUrl,
+          };
+        }
+      } else if (summaryResponse.status === 429) {
+        // Rate limited - wait before retry
+        const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        continue;
+      }
+    } catch (error) {
+      if (attempt === maxRetries - 1) {
+        // Last attempt failed, try alternative method
+        break;
+      }
+      const waitTime = Math.pow(2, attempt) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+
+  // Step 3: Alternative method - try to get image from page images API
+  try {
+    const imagesUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
+      title
+    )}&prop=pageimages&pithumbsize=500&format=json&origin=*`;
+    const imagesResponse = await fetch(imagesUrl);
+
+    if (imagesResponse.ok) {
+      const imagesData = (await imagesResponse.json()) as any;
+      const pages = imagesData.query?.pages;
+      if (pages) {
+        const pageId = Object.keys(pages)[0];
+        const page = pages[pageId];
+        if (page?.thumbnail?.source) {
+          imageUrl = page.thumbnail.source;
+        }
+      }
+    }
+  } catch (error) {
+    // Ignore errors from alternative method
+  }
+
+  // Return result even if no image found
+  return {
+    title: title,
+    imageUrl: imageUrl,
+  };
+}
+
+interface OpenRouterResponse {
+  id?: string;
+  choices?: Array<{
+    message?: {
+      role?: string;
+      content?: string;
+    };
+  }>;
+  error?: string;
+  details?: any;
+}
+
+async function callOpenRouter(input: string): Promise<OpenRouterResponse> {
+  // OpenRouter API key
+  const openRouterApiKey = (process.env.OPENROUTER_API_KEY || "").trim();
+
+  if (!openRouterApiKey) {
+    throw new Error(
+      "OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable."
+    );
+  }
+
+  // OpenRouter API endpoint
+  const openRouterUrl = "https://openrouter.ai/api/v1/chat/completions";
+
+  // Request headers
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${openRouterApiKey}`,
+    "Content-Type": "application/json",
+  };
+
+  // Request body for Grok 4.1 Fast (free)
+  const payload = {
+    model: "x-ai/grok-4.1-fast:free",
+    messages: [
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+  };
+
+  const response = await fetch(openRouterUrl, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("OpenRouter API error:", {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData,
+    });
+    const error: any = new Error(
+      `OpenRouter API error: ${JSON.stringify(errorData)}`
+    );
+    error.status = response.status;
+    error.errorData = errorData;
+    throw error;
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+interface ParsedSetData {
+  theme: string;
+  setName: string;
+  cards: Array<{
+    name: string;
+    hp: number;
+    rarity: string;
+    attacks: Array<{ name: string; damage: number }>;
+  }>;
+}
+
+async function createRandomSet(): Promise<Set> {
+  // Generate a random seed/number to add variation to the prompt
+  const randomSeed = Math.floor(Math.random() * 10000);
+  const randomThemes = [
+    "Ancient Egyptian Gods",
+    "Famous Scientists",
+    "Medieval Weapons",
+    "Ocean Creatures",
+    "Space Exploration",
+    "Renaissance Artists",
+    "Mythical Creatures",
+    "Historical Battles",
+    "World War II Aircraft",
+    "Greek Mythology",
+    "Dinosaur Species",
+    "Famous Inventors",
+    "Roman Emperors",
+    "Shakespeare Characters",
+    "Norse Mythology",
+    "Ancient Civilizations",
+    "Famous Explorers",
+    "Classical Composers",
+  ];
+  const randomThemeHint =
+    randomThemes[Math.floor(Math.random() * randomThemes.length)];
+
+  const promptWithRandomness = `${generateRandomCardSetPrompt}\n\nIMPORTANT: Use a DIFFERENT theme than "${randomThemeHint}". Be creative and choose something unique. Random seed: ${randomSeed}`;
+
+  const result = await callOpenRouter(promptWithRandomness);
+  if (!result || !result.choices || result.choices.length === 0) {
+    throw new Error("No response received from OpenRouter API");
+  }
+
+  const content = result.choices[0].message?.content;
+  if (!content) {
+    throw new Error("No content in OpenRouter API response");
+  }
+
+  try {
+    const parsedData: ParsedSetData = JSON.parse(content);
+
+    // Get cover image for the theme
+    let coverImage = "";
+    try {
+      const themeResult = await searchWikipedia(parsedData.theme);
+      coverImage = themeResult.imageUrl || "";
+    } catch (error) {
+      console.error(
+        `Failed to get cover image for theme "${parsedData.theme}":`,
+        error
+      );
+    }
+
+    // Transform cards with Wikipedia images (process sequentially to avoid rate limiting)
+    const transformedCards = [];
+    for (let i = 0; i < parsedData.cards.length; i++) {
+      const card = parsedData.cards[i];
+      let picture = "";
+      try {
+        const cardResult = await searchWikipedia(card.name);
+        picture = cardResult.imageUrl || "cardNotFound";
+      } catch (error) {
+        console.error(`Failed to get image for card "${card.name}":`, error);
+        picture = "cardNotFound";
+      }
+
+      // Add a small delay between requests to avoid rate limiting (except for the last card)
+      if (i < parsedData.cards.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // 200ms delay
+      }
+
+      // Ensure we have exactly 2 attacks
+      if (card.attacks.length !== 2) {
+        console.error(
+          `Card "${card.name}" has ${card.attacks.length} attacks, expected 2`
+        );
+      }
+
+      transformedCards.push({
+        name: card.name,
+        picture: picture,
+        hp: card.hp,
+        rarity: card.rarity as Rarity,
+        attacks: [
+          card.attacks[0] || { name: "Unknown", damage: 0 },
+          card.attacks[1] || { name: "Unknown", damage: 0 },
+        ] as [Attack, Attack],
+        fromPack: parsedData.setName,
+      });
+    }
+
+    const setObject: Set = {
+      name: parsedData.setName,
+      theme: parsedData.theme,
+      coverImage: coverImage,
+      cards: transformedCards,
+    };
+
+    await createDocumentWithId(setObject.name, "cards", setObject);
+    console.log(setObject);
+    return setObject;
+  } catch (error) {
+    console.error("Failed to parse JSON response:", error);
+    throw new Error(
+      `Failed to parse JSON response: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 
@@ -119,50 +419,17 @@ app.get("/api/searchWikipedia", async (req, res) => {
       return;
     }
 
-    // Step 1: Search for the topic
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
-      query
-    )}&format=json&origin=*`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = (await searchResponse.json()) as any;
-
-    if (
-      !searchData.query ||
-      !searchData.query.search ||
-      searchData.query.search.length === 0
-    ) {
-      res.status(404).json({ error: "No results found" });
-      return;
-    }
-
-    // Get the first result's title
-    const firstResult = searchData.query.search[0];
-    const title = firstResult.title;
-
-    // Step 2: Get page summary with image
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-      title
-    )}`;
-    const summaryResponse = await fetch(summaryUrl);
-
-    if (!summaryResponse.ok) {
-      res
-        .status(summaryResponse.status)
-        .json({ error: "Failed to fetch page summary" });
-      return;
-    }
-
-    const summaryData = (await summaryResponse.json()) as any;
-
-    const result = {
-      title: summaryData.title,
-      imageUrl: summaryData.thumbnail?.source || null,
-    };
-
+    const result = await searchWikipedia(query);
     res.status(200).json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error searching Wikipedia:", error);
-    res.status(500).json({ error: "Failed to search Wikipedia" });
+    if (error.message === "No results found") {
+      res.status(404).json({ error: error.message });
+    } else if (error.message === "Failed to fetch page summary") {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Failed to search Wikipedia" });
+    }
   }
 });
 
@@ -175,93 +442,38 @@ app.post("/api/openrouter", async (req, res) => {
       return;
     }
 
-    // OpenRouter API key - leave blank for user to add later
-    // You can set this via environment variable: OPENROUTER_API_KEY
-    const openRouterApiKey = (process.env.OPENROUTER_API_KEY || "").trim();
-
-    console.log(openRouterApiKey);
-    if (!openRouterApiKey) {
-      res.status(500).json({
-        error:
-          "OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable.",
-      });
-      return;
-    }
-
-    // Debug logging (remove in production)
-    console.log(
-      "OpenRouter API Key loaded:",
-      openRouterApiKey
-        ? `YES (length: ${
-            openRouterApiKey.length
-          }, starts with: ${openRouterApiKey.substring(0, 10)}...)`
-        : "NO"
-    );
-
-    // OpenRouter API endpoint
-    const openRouterUrl = "https://openrouter.ai/api/v1/chat/completions";
-
-    // Request headers
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${openRouterApiKey}`,
-      "Content-Type": "application/json",
-    };
-
-    // Add optional headers only if they're set
-    if (process.env.OPENROUTER_HTTP_REFERER) {
-      headers["HTTP-Referer"] = process.env.OPENROUTER_HTTP_REFERER;
-    }
-    if (process.env.OPENROUTER_APP_NAME) {
-      headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
-    } else {
-      headers["X-Title"] = "AnyCard";
-    }
-
-    // Debug logging (remove in production)
-    console.log("Request URL:", openRouterUrl);
-    console.log("Request headers:", {
-      ...headers,
-      Authorization: "Bearer ***",
-    }); // Hide actual key in logs
-
-    // Request body for Grok 4.1 Fast (free)
-    const payload = {
-      model: "x-ai/grok-4.1-fast:free", // Grok 4.1 Fast free model via OpenRouter
-      messages: [
-        {
-          role: "user",
-          content: input,
-        },
-      ],
-    };
-
-    const response = await fetch(openRouterUrl, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("OpenRouter API error:", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-      });
-      res.status(response.status).json({
-        error: "Failed to call OpenRouter API",
-        details: errorData,
-      });
-      return;
-    }
-
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error) {
+    const result = await callOpenRouter(input);
+    res.status(200).json(result);
+  } catch (error: any) {
     console.error("Error calling OpenRouter:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to process request with OpenRouter" });
+    if (error.message.includes("API key not configured")) {
+      res.status(500).json({ error: error.message });
+    } else if (error.status) {
+      res.status(error.status).json({
+        error: "Failed to call OpenRouter API",
+        details: error.errorData || error.message,
+      });
+    } else {
+      res
+        .status(500)
+        .json({ error: "Failed to process request with OpenRouter" });
+    }
+  }
+});
+
+app.post("/api/createRandomSet", async (req, res) => {
+  try {
+    const result = await createRandomSet();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in createRandomSet", error);
+    if (error.message === "No results found") {
+      res.status(404).json({ error: error.message });
+    } else if (error.message.includes("API key not configured")) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Failed to process combined request" });
+    }
   }
 });
 

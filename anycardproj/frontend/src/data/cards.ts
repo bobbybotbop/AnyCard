@@ -1,25 +1,6 @@
-export type Rarity = "common" | "uncom" | "rare" | "epic" | "legend" | "mythic";
+import { Rarity, Attack, Card, Set } from "@full-stack/types";
 
-export interface Attack {
-  name: string;
-  damage: number;
-}
-
-export interface Card {
-  name: string;
-  picture: string;
-  hp: number;
-  rarity: Rarity;
-  attacks: [Attack, Attack];
-  fromPack: string;
-}
-
-export interface Set {
-  name: string;
-  theme: string;
-  coverImage: string;
-  cards: Card[];
-}
+export type { Rarity, Attack, Card, Set };
 
 export const cardSets: Set[] = [
   {

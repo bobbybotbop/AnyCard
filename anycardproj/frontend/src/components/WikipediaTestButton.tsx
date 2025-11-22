@@ -1,11 +1,14 @@
 import React, { useState } from "react";
-import { searchWikipedia, callOpenRouter } from "../api/cards";
+import { searchWikipedia, callOpenRouter, createRandomSet } from "../api/cards";
 
 const WikipediaTestButton: React.FC = () => {
   const [query, setQuery] = useState("Albert Einstein");
   const [loading, setLoading] = useState(false);
-  const [openRouterInput, setOpenRouterInput] = useState("What is artificial intelligence?");
+  const [openRouterInput, setOpenRouterInput] = useState(
+    "What is artificial intelligence?"
+  );
   const [openRouterLoading, setOpenRouterLoading] = useState(false);
+  const [randomSetLoading, setRandomSetLoading] = useState(false);
 
   const handleSearch = async () => {
     setLoading(true);
@@ -36,12 +39,37 @@ const WikipediaTestButton: React.FC = () => {
     }
   };
 
+  const handleCreateRandomSet = async () => {
+    setRandomSetLoading(true);
+    try {
+      const result = await createRandomSet();
+      console.log("Random Set Created:", result);
+    } catch (error) {
+      console.error("Error creating random set:", error);
+    } finally {
+      setRandomSetLoading(false);
+    }
+  };
+
   return (
-    <div style={{ padding: "20px", border: "1px solid #ccc", borderRadius: "8px", margin: "20px" }}>
+    <div
+      style={{
+        padding: "20px",
+        border: "1px solid #ccc",
+        borderRadius: "8px",
+        margin: "20px",
+      }}
+    >
       <h3>API Test Components</h3>
-      
+
       {/* Wikipedia Test */}
-      <div style={{ marginBottom: "30px", paddingBottom: "20px", borderBottom: "1px solid #eee" }}>
+      <div
+        style={{
+          marginBottom: "30px",
+          paddingBottom: "20px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
         <h4 style={{ marginBottom: "10px" }}>Wikipedia Search Test</h4>
         <div style={{ marginBottom: "10px" }}>
           <input
@@ -69,8 +97,16 @@ const WikipediaTestButton: React.FC = () => {
       </div>
 
       {/* OpenRouter Test */}
-      <div>
-        <h4 style={{ marginBottom: "10px" }}>OpenRouter (Grok 4.1 Fast) Test</h4>
+      <div
+        style={{
+          marginBottom: "30px",
+          paddingBottom: "20px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <h4 style={{ marginBottom: "10px" }}>
+          OpenRouter (Grok 4.1 Fast) Test
+        </h4>
         <div style={{ marginBottom: "10px" }}>
           <input
             type="text"
@@ -96,6 +132,27 @@ const WikipediaTestButton: React.FC = () => {
         </div>
       </div>
 
+      {/* Create Random Set Test */}
+      <div>
+        <h4 style={{ marginBottom: "10px" }}>Create Random Card Set Test</h4>
+        <div style={{ marginBottom: "10px" }}>
+          <button
+            onClick={handleCreateRandomSet}
+            disabled={randomSetLoading}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#dc3545",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: randomSetLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {randomSetLoading ? "Generating..." : "Create Random Set"}
+          </button>
+        </div>
+      </div>
+
       <p style={{ fontSize: "12px", color: "#666", marginTop: "20px" }}>
         Check the browser console for the results
       </p>
@@ -104,4 +161,3 @@ const WikipediaTestButton: React.FC = () => {
 };
 
 export default WikipediaTestButton;
-
