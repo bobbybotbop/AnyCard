@@ -19,11 +19,15 @@ import cardpackModelUrl from "../assets/cardpack2.glb?url";
 
 // Background overlay constants (position and dimensions in pixels)
 // These values are relative to the canvas size
-const BACKGROUND_X = 665; // X position in pixels
-const BACKGROUND_Y = 124; // Y position in pixels
-const BACKGROUND_WIDTH = 580; // Width in pixels
-const BACKGROUND_HEIGHT = 850; // Height in pixels
+// const BACKGROUND_X = 665; // X position in pixels
+// const BACKGROUND_Y = 124; // Y position in pixels
+// const BACKGROUND_WIDTH = 580; // Width in pixels
+// const BACKGROUND_HEIGHT = 850; // Height in pixels
 
+// Overlay size constants
+const MAX_WIDTH = 500; // Maximum width in pixels for overlay image
+const MAX_HEIGHT = 300; // Maximum height in pixels for overlay image
+const TRANSLATE_OVERLAY_Y = -100;
 // Utility function to composite overlay image over diffuse texture using Canvas
 async function compositeTextures(
   diffuseTextureUrl: string,
@@ -68,42 +72,42 @@ async function compositeTextures(
         ctx.drawImage(baseImage, 0, 0);
 
         // Draw background behind overlay image
-        ctx.fillStyle = "#000000"; // Black color
-        ctx.fillRect(
-          BACKGROUND_X,
-          BACKGROUND_Y,
-          BACKGROUND_WIDTH,
-          BACKGROUND_HEIGHT
-        );
+        // ctx.fillStyle = "#000000"; // Black color
+        // ctx.fillRect(
+        //   BACKGROUND_X,
+        //   BACKGROUND_Y,
+        //   BACKGROUND_WIDTH,
+        //   BACKGROUND_HEIGHT
+        // );
 
-        // Calculate overlay size based on 275x275 pixel limit while maintaining aspect ratio
-        const MAX_SIZE = 500;
+        // Calculate overlay size based on MAX_WIDTH and MAX_HEIGHT limits while maintaining aspect ratio
         const overlayImageAspect = overlayImage.width / overlayImage.height;
 
-        // Calculate scale factor to fit within 275x275
-        // Scale up if smaller, scale down if larger until one dimension reaches 275px
+        // Calculate scale factor to fit within both MAX_WIDTH and MAX_HEIGHT
+        // Use the smaller scale factor to ensure both dimensions fit within their limits
         const scaleFactor = Math.min(
-          MAX_SIZE / overlayImage.width,
-          MAX_SIZE / overlayImage.height
+          MAX_WIDTH / overlayImage.width,
+          MAX_HEIGHT / overlayImage.height
         );
 
         // Calculate target dimensions maintaining aspect ratio
         let targetWidth = overlayImage.width * scaleFactor;
         let targetHeight = overlayImage.height * scaleFactor;
 
-        // Ensure we don't exceed 275px in either dimension
-        if (targetWidth > MAX_SIZE) {
-          targetWidth = MAX_SIZE;
-          targetHeight = MAX_SIZE / overlayImageAspect;
+        // Ensure we don't exceed MAX_WIDTH or MAX_HEIGHT
+        if (targetWidth > MAX_WIDTH) {
+          targetWidth = MAX_WIDTH;
+          targetHeight = MAX_WIDTH / overlayImageAspect;
         }
-        if (targetHeight > MAX_SIZE) {
-          targetHeight = MAX_SIZE;
-          targetWidth = MAX_SIZE * overlayImageAspect;
+        if (targetHeight > MAX_HEIGHT) {
+          targetHeight = MAX_HEIGHT;
+          targetWidth = MAX_HEIGHT * overlayImageAspect;
         }
 
         // Calculate centered position on the canvas
         const drawX = (baseImage.width - targetWidth) / 2;
-        const drawY = (baseImage.height - targetHeight) / 2;
+        const drawY =
+          (baseImage.height - targetHeight) / 2 + -TRANSLATE_OVERLAY_Y;
 
         // Use the calculated dimensions
         const drawWidth = targetWidth;
