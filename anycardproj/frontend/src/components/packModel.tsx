@@ -1,5 +1,5 @@
 import { Suspense, useRef, useEffect, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 import type { Texture, Material } from "three";
 import {
@@ -11,6 +11,7 @@ import {
   CanvasTexture,
   Euler,
   Quaternion,
+  Vector3,
 } from "three";
 
 // Import textures using Vite's asset handling with ?url suffix to get the URL string
@@ -248,6 +249,7 @@ export function PackModelMesh({
   const texturesRef = useRef<Texture[]>([]);
   const canvasRef = useRef<HTMLCanvasElement[]>([]);
   const isMountedRef = useRef(true);
+  const accumulatedRotationRef = useRef(0); // Track accumulated rotation for autoRotate
 
   // Clone the scene for each instance so multiple models can be rendered independently
   // Without cloning, all instances would share the same Three.js object and appear at the same position
@@ -267,17 +269,95 @@ export function PackModelMesh({
     return clonedScene;
   }, [originalScene]);
 
-  // Rotate the model automatically
+  // Calculate base rotation quaternion (only changes when rotation prop changes)
+  const baseQuat = useMemo(() => {
+    const baseEuler = new Euler(
+      mu.degToRad(0),
+      mu.degToRad(90),
+      mu.degToRad(0),
+      "XYZ"
+    );
+    return new Quaternion().setFromEuler(baseEuler);
+  }, []);
+
+  const userQuat = useMemo(() => {
+    const userEuler = new Euler(
+      mu.degToRad(rotation[0]),
+      mu.degToRad(rotation[1]),
+      mu.degToRad(rotation[2]),
+      "XYZ"
+    );
+    return new Quaternion().setFromEuler(userEuler);
+  }, [rotation]);
+
+  // Calculate final rotation using quaternions
+  // This is the initial rotation; when autoRotate is enabled, useFrame will update it
+  const finalRotation = useMemo(() => {
+    // Combine base and user rotations using quaternions
+    const combinedQuat = baseQuat.clone().multiply(userQuat);
+    const finalEuler = new Euler().setFromQuaternion(combinedQuat, "XYZ");
+    return [finalEuler.x, finalEuler.y, finalEuler.z] as [
+      number,
+      number,
+      number,
+    ];
+  }, [baseQuat, userQuat]);
+
+  // Reset accumulated rotation when rotation prop changes or autoRotate is toggled
+  useEffect(() => {
+    accumulatedRotationRef.current = 0;
+  }, [rotation, autoRotate]);
+
+  // Set initial rotation when autoRotate is enabled or rotation changes
+  useEffect(() => {
+    if (!autoRotate) {
+      const targetRef = rotationCenter ? groupRef : meshRef;
+      if (targetRef.current) {
+        targetRef.current.rotation.set(
+          finalRotation[0],
+          finalRotation[1],
+          finalRotation[2]
+        );
+      }
+    }
+  }, [finalRotation, autoRotate, rotationCenter]);
+
+  // Rotate the model automatically using quaternions
   useFrame((state, delta) => {
     const targetRef = rotationCenter ? groupRef : meshRef;
     if (targetRef.current && autoRotate) {
+      // Accumulate rotation angle
+      accumulatedRotationRef.current += delta * rotationSpeed;
+
+      // Create incremental rotation quaternion around the specified axis (in original coordinate system)
+      let incrementalQuat: Quaternion;
       if (rotationAxis === "x") {
-        targetRef.current.rotation.x += delta * rotationSpeed;
+        incrementalQuat = new Quaternion().setFromAxisAngle(
+          new Vector3(1, 0, 0),
+          accumulatedRotationRef.current
+        );
       } else if (rotationAxis === "y") {
-        targetRef.current.rotation.y += delta * rotationSpeed;
-      } else if (rotationAxis === "z") {
-        targetRef.current.rotation.z += delta * rotationSpeed;
+        incrementalQuat = new Quaternion().setFromAxisAngle(
+          new Vector3(0, 1, 0),
+          accumulatedRotationRef.current
+        );
+      } else {
+        // rotationAxis === "z"
+        incrementalQuat = new Quaternion().setFromAxisAngle(
+          new Vector3(0, 0, 1),
+          accumulatedRotationRef.current
+        );
       }
+
+      // Combine quaternions: baseQuat * (userQuat * incrementalQuat)
+      // This applies incremental rotation in original coordinate system, then user rotation, then base rotation
+      const combinedQuat = baseQuat
+        .clone()
+        .multiply(userQuat.clone().multiply(incrementalQuat));
+
+      // Convert back to Euler and apply
+      const finalEuler = new Euler().setFromQuaternion(combinedQuat, "XYZ");
+      targetRef.current.rotation.set(finalEuler.x, finalEuler.y, finalEuler.z);
     }
   });
 
@@ -487,38 +567,6 @@ export function PackModelMesh({
   // Handle scale - can be a number or array
   const scaleValue = Array.isArray(scale) ? scale : [scale, scale, scale];
 
-  // Base rotation: Y=90° to orient the model correctly
-  // Use quaternions to combine rotations without coordinate system changes
-  const baseEuler = new Euler(
-    mu.degToRad(0),
-    mu.degToRad(90),
-    mu.degToRad(0),
-    "XYZ" // Base rotation order
-  );
-  const userEuler = new Euler(
-    mu.degToRad(rotation[0]),
-    mu.degToRad(rotation[1]),
-    mu.degToRad(rotation[2]),
-    "XYZ" // User rotation order
-  );
-
-  // Convert to quaternions and combine
-  const baseQuat = new Quaternion().setFromEuler(baseEuler);
-  const userQuat = new Quaternion().setFromEuler(userEuler);
-
-  // Multiply quaternions: baseQuat.multiply(userQuat) applies userQuat first, then baseQuat
-  // This means user rotations happen in the original coordinate system (independent axes),
-  // then the base Y=90° rotation is applied on top without affecting the user's coordinate system
-  const combinedQuat = baseQuat.clone().multiply(userQuat);
-
-  // Convert back to Euler angles
-  const finalEuler = new Euler().setFromQuaternion(combinedQuat, "XYZ");
-  const finalRotation: [number, number, number] = [
-    finalEuler.x,
-    finalEuler.y,
-    finalEuler.z,
-  ];
-
   // Set rotation order for Euler conversion (quaternions handle the combination without gimbal lock)
   // Using XYZ order since quaternions already handle the rotation combination correctly
   useEffect(() => {
@@ -615,7 +663,7 @@ export default function PackModel({
   cameraPosition = [0, 0, 5],
   cameraFov = 50,
   ambientLightIntensity = 0.5,
-  directionalLightIntensity = 1,
+  directionalLightIntensity = 10,
   enableZoom = false,
   enableRotate = false,
   enablePan = false,
@@ -634,22 +682,32 @@ export default function PackModel({
   // If no custom path is provided, use the imported model URL
   const defaultModelPath = modelPath || cardpackModelUrl;
 
+  // Component to enhance color vibrancy via tone mapping
+  function ColorEnhancement() {
+    const { gl } = useThree();
+    useEffect(() => {
+      gl.toneMappingExposure = 1.2; // Increase exposure for brighter, more vibrant colors
+    }, [gl]);
+    return null;
+  }
+
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
         camera={{ position: cameraPosition, fov: cameraFov }}
         gl={{ antialias: true }}
       >
+        <ColorEnhancement />
         {/* Lighting */}
         <ambientLight intensity={ambientLightIntensity} />
         <directionalLight
           position={[10, 10, 5]}
           intensity={directionalLightIntensity}
         />
-        <pointLight position={[-10, -10, -5]} intensity={0.5} />
+        <pointLight position={[-10, -10, -5]} intensity={0.4} />
 
         {/* Environment for better lighting */}
-        <Environment preset="sunset" />
+        <Environment preset="studio" />
 
         {/* Model */}
         <Suspense fallback={null}>

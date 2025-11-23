@@ -15,7 +15,9 @@ const HomePage = () => {
         <div className="h-150">
           <PackModel
             overlayImageUrl="https://bogleech.com/pokemon/allpokes/102Exeggcute.png"
-            rotation={[90, 0, 0]}
+            rotation={[0, 0, 90]}
+            autoRotate={true}
+            rotationAxis="x"
           ></PackModel>
         </div>
         {/* Sets Section */}

@@ -92,7 +92,7 @@ export default function DailyPacks({
               normalTexture={normalTextureUrl}
               scale={1.4}
               position={[-2, 0.5, 0.5]}
-              rotation={[170, 170, -90]}
+              rotation={[190, 170, -90]}
               autoRotate={false}
             />
           </BobbingPack>
@@ -104,7 +104,7 @@ export default function DailyPacks({
               normalTexture={normalTextureUrl}
               scale={1.4}
               position={[0, 0, 0.2]}
-              rotation={[185, 180, -75]}
+              rotation={[165, 180, -75]}
               autoRotate={false}
             />
           </BobbingPack>
@@ -116,7 +116,7 @@ export default function DailyPacks({
               normalTexture={normalTextureUrl}
               scale={1.4}
               position={[2, 0.7, 0]}
-              rotation={[190, 175, -90]}
+              rotation={[190, 190, -90]}
               autoRotate={false}
             />
           </BobbingPack>
