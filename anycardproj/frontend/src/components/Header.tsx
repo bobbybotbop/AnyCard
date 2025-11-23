@@ -25,11 +25,11 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
 
   return (
     <header
-      className={`fixed z-50 pt-[2vh] transition-all duration-300 ${
+      className={`fixed z-50  transition-all duration-300 ${
         isScrolled ? "backdrop-blur-xs" : "bg-transparent"
       }`}
     >
-      <div className="pb-[2vh] flex border-b-1 border-white/50">
+      <div className=" flex border-b-1 border-white/50 ">
         {/* Left Navigation Icons */}
         <div className="flex items-center w-[40vw] justify-end gap-16 pr-16">
           <Link to="/" className="text-white" title="Home">
@@ -45,7 +45,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
           <img
             src={anyCardLogo}
             alt="AnyCard Logo"
-            className="invert h-[8vh] w-auto saturate-[10]"
+            className="invert h-[10vh] w-auto saturate-[10]"
           />
         </div>
 
