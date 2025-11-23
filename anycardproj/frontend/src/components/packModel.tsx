@@ -28,7 +28,7 @@ import cardpackModelUrl from "../assets/cardpack2.glb?url";
 // const BACKGROUND_HEIGHT = 850; // Height in pixels
 
 // Overlay size constants
-const MAX_WIDTH = 500; // Maximum width in pixels for overlay image
+const MAX_WIDTH = 350; // Maximum width in pixels for overlay image
 const MAX_HEIGHT = 300; // Maximum height in pixels for overlay image
 const TRANSLATE_OVERLAY_Y = -70;
 const textPadding = -10;
@@ -461,12 +461,12 @@ async function compositeTextures(
 
             // Outer thick outline
             ctx.strokeStyle = outlineColor;
-            ctx.lineWidth = Math.max(1, fontSize * 0.035);
+            ctx.lineWidth = Math.max(1, fontSize * 0.01);
             ctx.strokeText(char, x, y);
 
             // Middle outline layer
             ctx.strokeStyle = outlineColor;
-            ctx.lineWidth = Math.max(2, fontSize * 0.08);
+            ctx.lineWidth = Math.max(1, fontSize * 0.01);
             ctx.strokeText(char, x, y);
 
             // Draw text fill with gradient
@@ -475,7 +475,7 @@ async function compositeTextures(
 
             // Inner thin outline for extra sharpness
             ctx.strokeStyle = outlineColor;
-            ctx.lineWidth = Math.max(1, fontSize * 0.03);
+            ctx.lineWidth = Math.max(1, fontSize * 0.01);
             ctx.strokeText(char, x, y);
           };
 

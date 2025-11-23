@@ -1,7 +1,9 @@
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { PackModelMesh } from "./packModel";
+import { getDailyPacks } from "../api/cards";
+import { Set } from "@full-stack/types";
 import diffuseTextureUrl from "../assets/trading-card-pack/textures/DIFFUSE.png?url";
 import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORMAL.png?url";
 import cardpackModelUrl from "../assets/cardpack2.glb?url";
@@ -31,6 +33,21 @@ export default function DailyPacks({
   minDistance = 3,
   maxDistance = 10,
 }: DailyPacksProps) {
+  const [sets, setSets] = useState<Set[]>([]);
+
+  useEffect(() => {
+    const fetchDailyPacks = async () => {
+      try {
+        const dailyPacks = await getDailyPacks();
+        setSets(dailyPacks);
+      } catch (error) {
+        console.error("Failed to fetch daily packs:", error);
+      }
+    };
+
+    fetchDailyPacks();
+  }, []);
+
   // Component to enhance color vibrancy via tone mapping
   function ColorEnhancement() {
     const { gl } = useThree();
@@ -94,6 +111,8 @@ export default function DailyPacks({
               position={[-2, 0.5, 0.5]}
               rotation={[190, 170, -90]}
               autoRotate={false}
+              overlayImageUrl={sets[0]?.coverImage}
+              setTitle={sets[0]?.theme}
             />
           </BobbingPack>
           {/* middle card */}
@@ -106,6 +125,8 @@ export default function DailyPacks({
               position={[0, 0, 0.2]}
               rotation={[165, 180, -75]}
               autoRotate={false}
+              overlayImageUrl={sets[1]?.coverImage}
+              setTitle={sets[1]?.theme}
             />
           </BobbingPack>
           {/* right card */}
@@ -118,6 +139,8 @@ export default function DailyPacks({
               position={[2, 0.7, 0]}
               rotation={[190, 190, -90]}
               autoRotate={false}
+              overlayImageUrl={sets[2]?.coverImage}
+              setTitle={sets[2]?.theme}
             />
           </BobbingPack>
         </Suspense>

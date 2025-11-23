@@ -94,6 +94,22 @@ async function getUserData(uid: string): Promise<userData | null> {
   }
 }
 
+async function getSetFromCollection(
+  collection: string,
+  setId: string
+): Promise<Set | null> {
+  try {
+    const setDoc = await db.collection(collection).doc(setId).get();
+    if (!setDoc.exists) {
+      return null;
+    }
+    const data = setDoc.data();
+    return data as Set;
+  } catch (error) {
+    throw error;
+  }
+}
+
 interface WikipediaResult {
   title: string;
   imageUrl: string | null;
@@ -438,6 +454,23 @@ async function createThreeRandomSets(): Promise<Set[]> {
   return processedSets;
 }
 
+async function getDailyPacks(): Promise<Set[]> {
+  try {
+    const snapshot = await db.collection("dailyPacks").get();
+    const sets: Set[] = [];
+
+    snapshot.forEach((doc: any) => {
+      const data = doc.data();
+      sets.push(data as Set);
+    });
+
+    // Return the first 3 sets (or fewer if less than 3 exist)
+    return sets.slice(0, 3);
+  } catch (error) {
+    throw error;
+  }
+}
+
 // app.get("/addUser", async (req, res) => {});
 
 app.post("/api/createCard", async (req, res) => {
@@ -556,6 +589,16 @@ app.post("/api/createDailyPacks", async (req, res) => {
     } else {
       res.status(500).json({ error: "Failed to process daily packs request" });
     }
+  }
+});
+
+app.get("/api/getDailyPacks", async (req, res) => {
+  try {
+    const result = await getDailyPacks();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in getDailyPacks", error);
+    res.status(500).json({ error: "Failed to get daily packs" });
   }
 });
 

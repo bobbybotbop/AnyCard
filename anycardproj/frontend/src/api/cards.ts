@@ -143,3 +143,16 @@ export const createDailyPacks = async (): Promise<Set[]> => {
 
   return response.json();
 };
+
+export const getDailyPacks = async (): Promise<Set[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getDailyPacks`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get daily packs");
+  }
+
+  return response.json();
+};
