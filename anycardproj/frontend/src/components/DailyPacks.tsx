@@ -108,7 +108,7 @@ export default function DailyPacks({
               diffuseTexture={diffuseTextureUrl}
               normalTexture={normalTextureUrl}
               scale={1.4}
-              position={[-2, 0.5, 0.5]}
+              position={[-1.8, 0.2, 0.5]}
               rotation={[190, 170, -90]}
               autoRotate={false}
               overlayImageUrl={sets[0]?.coverImage}
@@ -122,8 +122,8 @@ export default function DailyPacks({
               diffuseTexture={diffuseTextureUrl}
               normalTexture={normalTextureUrl}
               scale={1.4}
-              position={[0, 0, 0.2]}
-              rotation={[165, 180, -75]}
+              position={[0, -0.3, 0.2]}
+              rotation={[170, 180, -75]}
               autoRotate={false}
               overlayImageUrl={sets[1]?.coverImage}
               setTitle={sets[1]?.theme}
@@ -136,7 +136,7 @@ export default function DailyPacks({
               diffuseTexture={diffuseTextureUrl}
               normalTexture={normalTextureUrl}
               scale={1.4}
-              position={[2, 0.7, 0]}
+              position={[2, 0.2, 0]}
               rotation={[190, 190, -90]}
               autoRotate={false}
               overlayImageUrl={sets[2]?.coverImage}

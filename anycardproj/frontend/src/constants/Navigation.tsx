@@ -2,8 +2,16 @@ import Inventory from "../pages/Inventory";
 import Profile from "../pages/Profile";
 import HomePage from "../pages/Home";
 import LoginPage from "../pages/Login";
+import Trading from "../pages/Trading";
 import { ComponentType } from "react";
-import { LucideIcon, Home, User, Package, LogIn } from "lucide-react";
+import {
+  LucideIcon,
+  Home,
+  User,
+  Package,
+  LogIn,
+  ArrowLeftRight,
+} from "lucide-react";
 
 /**
  * TODO: Modify this constant to point to the URL of your backend.
@@ -44,6 +52,12 @@ export const PATHS: {
     label: "Inventory",
     component: Inventory,
     icon: Package,
+  },
+  {
+    link: "/trading",
+    label: "Trading",
+    component: Trading,
+    icon: ArrowLeftRight,
   },
   {
     link: "/login",

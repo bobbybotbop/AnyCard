@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { searchWikipedia, callOpenRouter, createRandomSet, createDailyPacks } from "../api/cards";
+import {
+  searchWikipedia,
+  callOpenRouter,
+  createRandomSet,
+  createDailyPacks,
+} from "../api/cards";
 
 const WikipediaTestButton: React.FC = () => {
   const [query, setQuery] = useState("Albert Einstein");
@@ -57,7 +62,10 @@ const WikipediaTestButton: React.FC = () => {
     try {
       const result = await createDailyPacks();
       console.log("Daily Packs Created:", result);
-      console.log(`Created ${result.length} sets:`, result.map((set: any) => set.theme));
+      console.log(
+        `Created ${result.length} sets:`,
+        result.map((set: any) => set.theme)
+      );
     } catch (error) {
       console.error("Error creating daily packs:", error);
     } finally {
@@ -189,7 +197,9 @@ const WikipediaTestButton: React.FC = () => {
               cursor: dailyPacksLoading ? "not-allowed" : "pointer",
             }}
           >
-            {dailyPacksLoading ? "Generating..." : "Create Daily Packs (3 Sets)"}
+            {dailyPacksLoading
+              ? "Generating..."
+              : "Create Daily Packs (3 Sets)"}
           </button>
         </div>
       </div>

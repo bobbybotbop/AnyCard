@@ -3,12 +3,17 @@ import PackModel from "../components/packModel";
 
 const HomePage = () => {
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-          AnyCard Trading Card Game
-        </h1>
-        <div className="h-100">
+    <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white relative overflow-hidden">
+      {/* Background Text */}
+      <div className="absolute inset-0 flex flex-col pt-[8vh] text-center pointer-events-none z-0">
+        <div className="text-[20vw] font-bold leading-none select-none background-text-gradient">
+          <div>Weekly</div>
+          <div className="text-right mt-[10vh] pr-[10vw]">Sets</div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto mt-10 relative z-10">
+        <div className="mt-[15vh] h-100">
           <DailyPacks />
         </div>
 
