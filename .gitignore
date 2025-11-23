@@ -4,3 +4,5 @@ anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
 *.log
 *.log
 anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
+*.log
+/anycardproj/backend/%localappdata%

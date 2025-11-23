@@ -296,9 +296,96 @@ interface ParsedSetData {
 //   return promptWithRandomness;
 // }
 
-async function createRandomSet(): Promise<Set> {
-  // Simply call openrouter with the original prompt
-  const result = await callOpenRouter(generateRandomCardSetPrompt);
+async function processSetData(parsedData: ParsedSetData): Promise<Set> {
+  console.log("!!finished calling openrouter, now calling wiki");
+  // Get cover image for the theme
+  let coverImage = "";
+  try {
+    const themeResult = await searchWikipedia(parsedData.theme);
+    coverImage = themeResult.imageUrl || "";
+  } catch (error) {
+    console.error(
+      `Failed to get cover image for theme "${parsedData.theme}":`,
+      error
+    );
+  }
+
+  // Transform cards with Wikipedia images (process sequentially to avoid rate limiting)
+  const transformedCards = [];
+  for (let i = 0; i < parsedData.cards.length; i++) {
+    const card = parsedData.cards[i];
+    let picture = "";
+    try {
+      const cardResult = await searchWikipedia(card.name);
+      picture = cardResult.imageUrl || "doesNotExistOnWiki";
+    } catch (error) {
+      console.error(`Failed to get image for card "${card.name}":`, error);
+      picture = "cardNotFound";
+    }
+
+    // Add a small delay between requests to avoid rate limiting (except for the last card)
+    if (i < parsedData.cards.length - 1) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, WIKIPEDIA_RATE_LIMIT_DELAY)
+      );
+    }
+
+    // Ensure we have exactly 2 attacks
+    if (card.attacks.length !== 2) {
+      console.error(
+        `Card "${card.name}" has ${card.attacks.length} attacks, expected 2`
+      );
+    }
+
+    transformedCards.push({
+      name: card.name,
+      picture: picture,
+      hp: card.hp,
+      rarity: card.rarity as Rarity,
+      attacks: [
+        card.attacks[0] || { name: "Unknown", damage: 0 },
+        card.attacks[1] || { name: "Unknown", damage: 0 },
+      ] as [Attack, Attack],
+      fromPack: parsedData.setName,
+    });
+  }
+
+  // If coverImage is not found, use a randomly selected image from successfully found card images
+  if (!coverImage) {
+    const successfulCardImages = transformedCards
+      .map((card) => card.picture)
+      .filter((picture) => picture && picture !== "cardNotFound");
+
+    if (successfulCardImages.length > 0) {
+      const randomIndex = Math.floor(
+        Math.random() * successfulCardImages.length
+      );
+      coverImage = successfulCardImages[randomIndex];
+      console.log(
+        `Cover image not found for theme "${parsedData.theme}", using random card image: ${coverImage}`
+      );
+    }
+  }
+
+  const setObject: Set = {
+    name: parsedData.setName,
+    theme: parsedData.theme,
+    coverImage: coverImage,
+    cards: transformedCards,
+  };
+
+  // Console log: After images are found for the set
+  console.log(`${setObject.theme} - images found`);
+
+  return setObject;
+}
+
+async function createRandomSet(
+  prompt: string = generateRandomCardSetPrompt,
+  collection: string = "cards"
+): Promise<Set> {
+  // Simply call openrouter with the provided prompt (or default)
+  const result = await callOpenRouter(prompt);
   if (!result || !result.choices || result.choices.length === 0) {
     throw new Error("No response received from OpenRouter API");
   }
@@ -310,84 +397,8 @@ async function createRandomSet(): Promise<Set> {
 
   try {
     const parsedData: ParsedSetData = JSON.parse(content);
-    console.log("!!finished calling openrouter, now calling wiki");
-    // Get cover image for the theme
-    let coverImage = "";
-    try {
-      const themeResult = await searchWikipedia(parsedData.theme);
-      coverImage = themeResult.imageUrl || "";
-    } catch (error) {
-      console.error(
-        `Failed to get cover image for theme "${parsedData.theme}":`,
-        error
-      );
-    }
-
-    // Transform cards with Wikipedia images (process sequentially to avoid rate limiting)
-    const transformedCards = [];
-    for (let i = 0; i < parsedData.cards.length; i++) {
-      const card = parsedData.cards[i];
-      let picture = "";
-      try {
-        const cardResult = await searchWikipedia(card.name);
-        picture = cardResult.imageUrl || "doesNotExistOnWiki";
-      } catch (error) {
-        console.error(`Failed to get image for card "${card.name}":`, error);
-        picture = "cardNotFound";
-      }
-
-      // Add a small delay between requests to avoid rate limiting (except for the last card)
-      if (i < parsedData.cards.length - 1) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, WIKIPEDIA_RATE_LIMIT_DELAY)
-        );
-      }
-
-      // Ensure we have exactly 2 attacks
-      if (card.attacks.length !== 2) {
-        console.error(
-          `Card "${card.name}" has ${card.attacks.length} attacks, expected 2`
-        );
-      }
-
-      transformedCards.push({
-        name: card.name,
-        picture: picture,
-        hp: card.hp,
-        rarity: card.rarity as Rarity,
-        attacks: [
-          card.attacks[0] || { name: "Unknown", damage: 0 },
-          card.attacks[1] || { name: "Unknown", damage: 0 },
-        ] as [Attack, Attack],
-        fromPack: parsedData.setName,
-      });
-    }
-
-    // If coverImage is not found, use a randomly selected image from successfully found card images
-    if (!coverImage) {
-      const successfulCardImages = transformedCards
-        .map((card) => card.picture)
-        .filter((picture) => picture && picture !== "cardNotFound");
-
-      if (successfulCardImages.length > 0) {
-        const randomIndex = Math.floor(
-          Math.random() * successfulCardImages.length
-        );
-        coverImage = successfulCardImages[randomIndex];
-        console.log(
-          `Cover image not found for theme "${parsedData.theme}", using random card image: ${coverImage}`
-        );
-      }
-    }
-
-    const setObject: Set = {
-      name: parsedData.setName,
-      theme: parsedData.theme,
-      coverImage: coverImage,
-      cards: transformedCards,
-    };
-
-    await createDocumentWithId("cards", setObject.name, setObject);
+    const setObject = await processSetData(parsedData);
+    await createDocumentWithId(collection, setObject.name, setObject);
     console.log(setObject);
     return setObject;
   } catch (error) {
@@ -398,6 +409,33 @@ async function createRandomSet(): Promise<Set> {
       }`
     );
   }
+}
+
+async function createThreeRandomSets(): Promise<Set[]> {
+  const processedSets: Set[] = [];
+
+  // Call createRandomSet three separate times
+  for (let i = 0; i < 3; i++) {
+    try {
+      const setObject = await createRandomSet(
+        generateRandomCardSetPrompt,
+        "dailyPacks"
+      );
+
+      // Console log: After each Claude call completes, log the theme that was generated
+      console.log(`Generated set theme: ${setObject.theme}`);
+
+      processedSets.push(setObject);
+    } catch (error) {
+      console.error(`Failed to create set ${i + 1}:`, error);
+      throw error;
+    }
+  }
+
+  // Console log: When everything is done
+  console.log("All done generating!");
+
+  return processedSets;
 }
 
 // app.get("/addUser", async (req, res) => {});
@@ -501,6 +539,22 @@ app.post("/api/createRandomSet", async (req, res) => {
       res.status(500).json({ error: error.message });
     } else {
       res.status(500).json({ error: "Failed to process combined request" });
+    }
+  }
+});
+
+app.post("/api/createDailyPacks", async (req, res) => {
+  try {
+    const result = await createThreeRandomSets();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in createThreeRandomSets", error);
+    if (error.message === "No results found") {
+      res.status(404).json({ error: error.message });
+    } else if (error.message.includes("API key not configured")) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Failed to process daily packs request" });
     }
   }
 });

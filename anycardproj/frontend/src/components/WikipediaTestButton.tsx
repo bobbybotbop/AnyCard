@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { searchWikipedia, callOpenRouter, createRandomSet } from "../api/cards";
+import { searchWikipedia, callOpenRouter, createRandomSet, createDailyPacks } from "../api/cards";
 
 const WikipediaTestButton: React.FC = () => {
   const [query, setQuery] = useState("Albert Einstein");
@@ -9,6 +9,7 @@ const WikipediaTestButton: React.FC = () => {
   );
   const [openRouterLoading, setOpenRouterLoading] = useState(false);
   const [randomSetLoading, setRandomSetLoading] = useState(false);
+  const [dailyPacksLoading, setDailyPacksLoading] = useState(false);
 
   const handleSearch = async () => {
     setLoading(true);
@@ -48,6 +49,19 @@ const WikipediaTestButton: React.FC = () => {
       console.error("Error creating random set:", error);
     } finally {
       setRandomSetLoading(false);
+    }
+  };
+
+  const handleCreateDailyPacks = async () => {
+    setDailyPacksLoading(true);
+    try {
+      const result = await createDailyPacks();
+      console.log("Daily Packs Created:", result);
+      console.log(`Created ${result.length} sets:`, result.map((set: any) => set.theme));
+    } catch (error) {
+      console.error("Error creating daily packs:", error);
+    } finally {
+      setDailyPacksLoading(false);
     }
   };
 
@@ -133,7 +147,13 @@ const WikipediaTestButton: React.FC = () => {
       </div>
 
       {/* Create Random Set Test */}
-      <div>
+      <div
+        style={{
+          marginBottom: "30px",
+          paddingBottom: "20px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
         <h4 style={{ marginBottom: "10px" }}>Create Random Card Set Test</h4>
         <div style={{ marginBottom: "10px" }}>
           <button
@@ -149,6 +169,27 @@ const WikipediaTestButton: React.FC = () => {
             }}
           >
             {randomSetLoading ? "Generating..." : "Create Random Set"}
+          </button>
+        </div>
+      </div>
+
+      {/* Create Daily Packs Test */}
+      <div>
+        <h4 style={{ marginBottom: "10px" }}>Create Daily Packs Test</h4>
+        <div style={{ marginBottom: "10px" }}>
+          <button
+            onClick={handleCreateDailyPacks}
+            disabled={dailyPacksLoading}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#ff6b35",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: dailyPacksLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {dailyPacksLoading ? "Generating..." : "Create Daily Packs (3 Sets)"}
           </button>
         </div>
       </div>

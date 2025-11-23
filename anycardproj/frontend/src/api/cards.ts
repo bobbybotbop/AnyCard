@@ -1,5 +1,5 @@
 import { BACKEND_BASE_PATH } from "../constants/Navigation";
-import { newUser, userData } from "@full-stack/types";
+import { newUser, userData, Set } from "@full-stack/types";
 
 export interface Card {
   id?: string;
@@ -123,6 +123,22 @@ export const createRandomSet = async (): Promise<any> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to create random set");
+  }
+
+  return response.json();
+};
+
+export const createDailyPacks = async (): Promise<Set[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/createDailyPacks`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create daily packs");
   }
 
   return response.json();
