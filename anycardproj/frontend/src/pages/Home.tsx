@@ -34,7 +34,7 @@ const HomePage = () => {
             rotation={[0, 0, 90]}
             autoRotate={true}
             rotationAxis="x"
-            setTitle="cool eggys"
+            setTitle="The Coolest Eggs"
             onCanvasReady={handleCanvasReady}
           ></PackModel>
         </div>

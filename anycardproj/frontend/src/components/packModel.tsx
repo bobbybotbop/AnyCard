@@ -161,6 +161,73 @@ function generateGradientColors(baseColor: [number, number, number]): {
   };
 }
 
+/**
+ * Parses text into words and identifies major words (skips minor words like "&", "and", "the", "of", etc.)
+ * Returns an array of character objects with metadata about whether they should be larger
+ */
+function parseTextForStyling(text: string): Array<{
+  char: string;
+  fontSize: number;
+  isFirstLetterOfMajorWord: boolean;
+}> {
+  const minorWords = new Set([
+    "&",
+    "AND",
+    "THE",
+    "OF",
+    "A",
+    "AN",
+    "TO",
+    "FOR",
+    "IN",
+    "ON",
+    "AT",
+    "BY",
+    "WITH",
+  ]);
+
+  // Split text into words (preserving spaces and special characters)
+  const words = text.split(/(\s+)/);
+  const result: Array<{
+    char: string;
+    fontSize: number;
+    isFirstLetterOfMajorWord: boolean;
+  }> = [];
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+
+    // If it's whitespace, add it as-is with normal size
+    if (/^\s+$/.test(word)) {
+      for (const char of word) {
+        result.push({
+          char,
+          fontSize: 1.0,
+          isFirstLetterOfMajorWord: false,
+        });
+      }
+      continue;
+    }
+
+    // Check if this is a major word
+    const isMajorWord = !minorWords.has(word.toUpperCase());
+
+    // Process each character in the word
+    for (let j = 0; j < word.length; j++) {
+      const char = word[j];
+      const isFirstLetter = j === 0;
+
+      result.push({
+        char,
+        fontSize: isFirstLetter && isMajorWord ? 1.2 : 1.0,
+        isFirstLetterOfMajorWord: isFirstLetter && isMajorWord,
+      });
+    }
+  }
+
+  return result;
+}
+
 // Utility function to composite overlay image over diffuse texture using Canvas
 async function compositeTextures(
   diffuseTextureUrl: string,
@@ -298,30 +365,71 @@ async function compositeTextures(
           const gradientColors = generateGradientColors(dominantColor);
 
           // Calculate text position (below overlay with padding)
-
           const textY = drawY + drawHeight + textPadding;
-
-          // Calculate text size based on canvas dimensions
-          const baseFontSize = Math.max(32, Math.min(canvas.width * 0.1, 72));
-
-          // Set up font with sharp, angular styling - use bold, condensed font
-          ctx.font = `bold ${baseFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
 
           // Transform text to uppercase
           const titleText = setTitle.toUpperCase();
 
-          // Measure text width
-          const textMetrics = ctx.measureText(titleText);
-          const textWidth = textMetrics.width;
+          // Parse text into characters with styling metadata
+          const parsedChars = parseTextForStyling(titleText);
+
+          // Calculate base font size based on overlay image width
+          let baseFontSize = Math.max(24, Math.min(drawWidth * 0.15, 72));
+
+          // Set up font temporarily to measure text width
+          ctx.font = `bold ${baseFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
+          ctx.textBaseline = "top";
+
+          // Calculate total text width accounting for mixed font sizes
+          let totalTextWidth = 0;
+          for (const charInfo of parsedChars) {
+            const charFontSize = baseFontSize * charInfo.fontSize;
+            ctx.font = `bold ${charFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
+            const metrics = ctx.measureText(charInfo.char);
+            totalTextWidth += metrics.width;
+          }
+
+          // Scale font size to fit overlay width (with padding)
+          const targetWidth = drawWidth * 0.95; // 95% of overlay width for padding
+          if (totalTextWidth !== targetWidth && totalTextWidth > 0) {
+            const scaleFactor = targetWidth / totalTextWidth;
+            baseFontSize = baseFontSize * scaleFactor;
+
+            // Ensure font size stays within reasonable bounds
+            baseFontSize = Math.max(16, Math.min(baseFontSize, 100));
+
+            // Recalculate total width with scaled font size
+            totalTextWidth = 0;
+            for (const charInfo of parsedChars) {
+              const charFontSize = baseFontSize * charInfo.fontSize;
+              ctx.font = `bold ${charFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
+              const metrics = ctx.measureText(charInfo.char);
+              totalTextWidth += metrics.width;
+            }
+          }
+
           const textX = canvas.width / 2;
 
+          // Calculate the skew offset at the textY position
+          // The transform [1, 0, -0.15, 1] shifts x by -0.15 * y
+          // After transformation: x' = x - 0.15 * y
+          // To center the text properly after skew, we need to compensate for this offset
+          const skewOffset = 0.15 * textY;
+
+          // Adjust starting position to account for skew transform
+          // The center before transform: textStartX + totalTextWidth/2
+          // The center after transform: (textStartX + totalTextWidth/2) - 0.15*textY
+          // We want this to equal textX, so: textStartX = textX - totalTextWidth/2 + 0.15*textY
+          const textStartX = textX - totalTextWidth / 2 + skewOffset;
+
           // Create gradient for text fill - diagonal gradient for more dynamic look
+          // Account for skew in gradient coordinates as well
+          const gradientStartX = textStartX;
+          const gradientEndX = textStartX + totalTextWidth;
           const gradient = ctx.createLinearGradient(
-            textX - textWidth / 2,
+            gradientStartX,
             textY,
-            textX + textWidth / 2,
+            gradientEndX,
             textY + baseFontSize * 1.2
           );
           gradient.addColorStop(0, gradientColors.start);
@@ -331,30 +439,56 @@ async function compositeTextures(
           // Save context for transform
           ctx.save();
 
-          // Apply slight skew transform for angular effect (optional - can be removed if too much)
-          // ctx.transform(1, 0, -0.1, 1, 0, 0);
+          // Apply angular skew transform for stylized effect
+          ctx.transform(1, 0, -0.15, 1, 0, 0);
 
-          // Draw multiple outline layers for sharp, bold definition (like the reference image)
-          // Outer thick outline
-          ctx.strokeStyle = outlineColor;
-          ctx.lineWidth = Math.max(4, baseFontSize * 0.15);
+          // Set common text properties
+          ctx.textAlign = "left";
           ctx.lineJoin = "miter";
           ctx.miterLimit = 10;
-          ctx.strokeText(titleText, textX, textY);
 
-          // Middle outline layer
-          ctx.strokeStyle = outlineColor;
-          ctx.lineWidth = Math.max(2, baseFontSize * 0.08);
-          ctx.strokeText(titleText, textX, textY);
+          // Render text character by character with appropriate font sizes
+          let currentX = textStartX;
 
-          // Draw text fill with gradient
-          ctx.fillStyle = gradient;
-          ctx.fillText(titleText, textX, textY);
+          // Function to render a single character with all outline layers and fill
+          const renderCharacter = (
+            char: string,
+            fontSize: number,
+            x: number,
+            y: number
+          ) => {
+            ctx.font = `bold ${fontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
 
-          // Inner thin outline for extra sharpness
-          ctx.strokeStyle = outlineColor;
-          ctx.lineWidth = Math.max(1, baseFontSize * 0.03);
-          ctx.strokeText(titleText, textX, textY);
+            // Outer thick outline
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = Math.max(1, fontSize * 0.035);
+            ctx.strokeText(char, x, y);
+
+            // Middle outline layer
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = Math.max(2, fontSize * 0.08);
+            ctx.strokeText(char, x, y);
+
+            // Draw text fill with gradient
+            ctx.fillStyle = gradient;
+            ctx.fillText(char, x, y);
+
+            // Inner thin outline for extra sharpness
+            ctx.strokeStyle = outlineColor;
+            ctx.lineWidth = Math.max(1, fontSize * 0.03);
+            ctx.strokeText(char, x, y);
+          };
+
+          // Render each character with its appropriate font size
+          for (const charInfo of parsedChars) {
+            const charFontSize = baseFontSize * charInfo.fontSize;
+            renderCharacter(charInfo.char, charFontSize, currentX, textY);
+
+            // Measure character width to advance position
+            ctx.font = `bold ${charFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
+            const metrics = ctx.measureText(charInfo.char);
+            currentX += metrics.width;
+          }
 
           // Restore context
           ctx.restore();
