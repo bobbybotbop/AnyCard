@@ -9,6 +9,8 @@ import {
   MathUtils as mu,
   SRGBColorSpace,
   CanvasTexture,
+  Euler,
+  Quaternion,
 } from "three";
 
 // Import textures using Vite's asset handling with ?url suffix to get the URL string
@@ -486,62 +488,45 @@ export function PackModelMesh({
   const scaleValue = Array.isArray(scale) ? scale : [scale, scale, scale];
 
   // Base rotation: Y=90° to orient the model correctly
-  const baseRotation = [mu.degToRad(0), mu.degToRad(90), mu.degToRad(0)];
-  const finalRotation = rotation.map(
-    (deg, i) => mu.degToRad(deg) + baseRotation[i]
-  ) as [number, number, number];
+  // Use quaternions to combine rotations without coordinate system changes
+  const baseEuler = new Euler(
+    mu.degToRad(0),
+    mu.degToRad(90),
+    mu.degToRad(0),
+    "XYZ" // Base rotation order
+  );
+  const userEuler = new Euler(
+    mu.degToRad(rotation[0]),
+    mu.degToRad(rotation[1]),
+    mu.degToRad(rotation[2]),
+    "XYZ" // User rotation order
+  );
 
-  // Set rotation order to ZXY to fix X/Z axis conflation issue
-  //
-  // DETAILED EXPLANATION OF EULER ANGLES AND ROTATION ORDER:
-  //
-  // Euler angles represent rotations as three separate rotations around X, Y, and Z axes.
-  // However, the ORDER in which these rotations are applied matters critically!
-  //
-  // PROBLEM WITH DEFAULT 'XYZ' ORDER:
-  // With XYZ order and baseRotation = [0°, 90°, 0°] (Y=90°), here's what happens:
-  //   1. Rotate around X-axis by user's X value (e.g., 30°)
-  //   2. Rotate around Y-axis by 90° (this rotates the ENTIRE coordinate system!)
-  //   3. Rotate around Z-axis by user's Z value (e.g., 30°)
-  //
-  // After step 2, the coordinate system has been rotated 90° around Y. This means:
-  //   - What was originally the +X axis is now pointing in the +Z direction
-  //   - What was originally the +Z axis is now pointing in the -X direction
-  //
-  // So when you rotate around X in step 1, then rotate 90° around Y, then rotate around Z:
-  //   - The Z rotation in step 3 happens in a coordinate system where X and Z have swapped!
-  //   - Result: X and Z rotations appear to control the same visual axis
-  //
-  // SOLUTION WITH 'ZXY' ORDER:
-  // By changing the order to ZXY, rotations are applied as:
-  //   1. Rotate around Z-axis by user's Z value (e.g., 30°)
-  //   2. Rotate around X-axis by user's X value (e.g., 30°)
-  //   3. Rotate around Y-axis by 90° (base rotation, applied last)
-  //
-  // Why this works:
-  //   - Z and X rotations happen FIRST, in the original coordinate system
-  //   - They are independent because they operate on perpendicular axes
-  //   - The Y=90° rotation happens LAST, so it doesn't affect the relative independence
-  //     of X and Z rotations that were already applied
-  //
-  // VISUAL ANALOGY:
-  // Think of it like rotating a book:
-  //   - XYZ order: Flip pages (X), then rotate book 90° (Y), then tilt cover (Z)
-  //     → After rotating 90°, "flip pages" and "tilt cover" affect the same edge!
-  //   - ZXY order: Tilt cover (Z), flip pages (X), then rotate book 90° (Y)
-  //     → Tilt and flip happen before the big rotation, so they stay independent
-  //
-  // MATHEMATICAL PERSPECTIVE:
-  // Rotation matrices are multiplied: R_final = R_Y * R_X * R_Z (for ZXY order)
-  // When Y=90°, R_Y causes a coordinate system swap. By applying it last (rightmost),
-  // the X and Z rotations (R_X and R_Z) are applied in the original coordinate system
-  // where they are truly independent.
+  // Convert to quaternions and combine
+  const baseQuat = new Quaternion().setFromEuler(baseEuler);
+  const userQuat = new Quaternion().setFromEuler(userEuler);
+
+  // Multiply quaternions: baseQuat.multiply(userQuat) applies userQuat first, then baseQuat
+  // This means user rotations happen in the original coordinate system (independent axes),
+  // then the base Y=90° rotation is applied on top without affecting the user's coordinate system
+  const combinedQuat = baseQuat.clone().multiply(userQuat);
+
+  // Convert back to Euler angles
+  const finalEuler = new Euler().setFromQuaternion(combinedQuat, "XYZ");
+  const finalRotation: [number, number, number] = [
+    finalEuler.x,
+    finalEuler.y,
+    finalEuler.z,
+  ];
+
+  // Set rotation order for Euler conversion (quaternions handle the combination without gimbal lock)
+  // Using XYZ order since quaternions already handle the rotation combination correctly
   useEffect(() => {
     if (meshRef.current) {
-      meshRef.current.rotation.order = "ZXY";
+      meshRef.current.rotation.order = "XYZ";
     }
     if (groupRef.current) {
-      groupRef.current.rotation.order = "ZXY";
+      groupRef.current.rotation.order = "XYZ";
     }
   }, []);
 
@@ -621,7 +606,7 @@ export default function PackModel({
   className = "",
   modelPath,
   rotationSpeed = 0.5,
-  rotationAxis = "y",
+  rotationAxis = "z",
   autoRotate = false,
   scale = 1,
   position = [0, 0, 0],
@@ -631,8 +616,8 @@ export default function PackModel({
   cameraFov = 50,
   ambientLightIntensity = 0.5,
   directionalLightIntensity = 1,
-  enableZoom = true,
-  enableRotate = true,
+  enableZoom = false,
+  enableRotate = false,
   enablePan = false,
   minDistance = 3,
   maxDistance = 10,
@@ -696,7 +681,7 @@ export default function PackModel({
             enableRotate={enableRotate}
             minDistance={minDistance}
             maxDistance={maxDistance}
-            autoRotate={false}
+            autoRotate={autoRotate}
           />
         )}
       </Canvas>
