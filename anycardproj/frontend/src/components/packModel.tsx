@@ -30,7 +30,137 @@ import cardpackModelUrl from "../assets/cardpack2.glb?url";
 // Overlay size constants
 const MAX_WIDTH = 500; // Maximum width in pixels for overlay image
 const MAX_HEIGHT = 300; // Maximum height in pixels for overlay image
-const TRANSLATE_OVERLAY_Y = -100;
+const TRANSLATE_OVERLAY_Y = -70;
+const textPadding = -10;
+
+// Color analysis utilities
+/**
+ * Analyzes image pixels to find the most common RGB color
+ * Samples pixels efficiently by downsampling large images
+ */
+function getDominantColor(imageData: ImageData): [number, number, number] {
+  const data = imageData.data;
+  const width = imageData.width;
+  const height = imageData.height;
+
+  // Sample every Nth pixel for efficiency (sample every 4th pixel)
+  const sampleRate = 4;
+  const colorMap = new Map<string, number>();
+
+  for (let y = 0; y < height; y += sampleRate) {
+    for (let x = 0; x < width; x += sampleRate) {
+      const index = (y * width + x) * 4;
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      const a = data[index + 3];
+
+      // Skip transparent pixels - only count fully opaque pixels
+      if (a < 255) continue;
+
+      // Quantize colors to reduce noise (group similar colors)
+      const quantizedR = Math.floor(r / 16) * 16;
+      const quantizedG = Math.floor(g / 16) * 16;
+      const quantizedB = Math.floor(b / 16) * 16;
+      const colorKey = `${quantizedR},${quantizedG},${quantizedB}`;
+
+      colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
+    }
+  }
+
+  // Find the most common color
+  let maxCount = 0;
+  let dominantColor: [number, number, number] = [0, 0, 0];
+
+  colorMap.forEach((count, colorKey) => {
+    if (count > maxCount) {
+      maxCount = count;
+      const [r, g, b] = colorKey.split(",").map(Number);
+      dominantColor = [r, g, b];
+    }
+  });
+
+  return dominantColor;
+}
+
+/**
+ * Calculates which color (white or black) provides better contrast against the overlay image
+ * Uses relative luminance formula from WCAG guidelines
+ */
+function calculateContrast(overlayImageData: ImageData): "white" | "black" {
+  const data = overlayImageData.data;
+  const width = overlayImageData.width;
+  const height = overlayImageData.height;
+
+  // Sample pixels to calculate average luminance
+  const sampleRate = 8;
+  let totalLuminance = 0;
+  let sampleCount = 0;
+
+  for (let y = 0; y < height; y += sampleRate) {
+    for (let x = 0; x < width; x += sampleRate) {
+      const index = (y * width + x) * 4;
+      const r = data[index];
+      const g = data[index + 1];
+      const b = data[index + 2];
+      const a = data[index + 3];
+
+      // Skip transparent pixels - only count fully opaque pixels
+      if (a < 255) continue;
+
+      // Calculate relative luminance (WCAG formula)
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      totalLuminance += luminance;
+      sampleCount++;
+    }
+  }
+
+  if (sampleCount === 0) return "black"; // Default to black if no valid pixels
+
+  const averageLuminance = totalLuminance / sampleCount;
+
+  // If average luminance is above 0.5, use black outline; otherwise use white
+  return averageLuminance > 0.5 ? "black" : "white";
+}
+
+/**
+ * Generates gradient colors from a base color
+ * Creates a visually appealing gradient by creating lighter and darker variations
+ */
+function generateGradientColors(baseColor: [number, number, number]): {
+  start: string;
+  end: string;
+} {
+  const [r, g, b] = baseColor;
+
+  // Create a lighter version for the start of the gradient
+  const lightenFactor = 0.3;
+  const startR = Math.min(255, r + (255 - r) * lightenFactor);
+  const startG = Math.min(255, g + (255 - g) * lightenFactor);
+  const startB = Math.min(255, b + (255 - b) * lightenFactor);
+
+  // Create a darker, more saturated version for the end
+  const darkenFactor = 0.4;
+  const endR = Math.max(0, r * (1 - darkenFactor));
+  const endG = Math.max(0, g * (1 - darkenFactor));
+  const endB = Math.max(0, b * (1 - darkenFactor));
+
+  // Increase saturation for the end color
+  const saturationBoost = 1.2;
+  const finalEndR = Math.min(255, endR * saturationBoost);
+  const finalEndG = Math.min(255, endG * saturationBoost);
+  const finalEndB = Math.min(255, endB * saturationBoost);
+
+  return {
+    start: `rgb(${Math.round(startR)}, ${Math.round(startG)}, ${Math.round(
+      startB
+    )})`,
+    end: `rgb(${Math.round(finalEndR)}, ${Math.round(finalEndG)}, ${Math.round(
+      finalEndB
+    )})`,
+  };
+}
+
 // Utility function to composite overlay image over diffuse texture using Canvas
 async function compositeTextures(
   diffuseTextureUrl: string,
@@ -38,7 +168,8 @@ async function compositeTextures(
   overlayX: number,
   overlayY: number,
   overlayWidth: number,
-  overlayHeight: number
+  overlayHeight: number,
+  setTitle?: string
 ): Promise<{
   texture: Texture;
   canvasDataUrl: string;
@@ -128,8 +259,106 @@ async function compositeTextures(
           canvasHeight: canvas.height,
         });
 
+        // Analyze overlay image colors before drawing (if setTitle is provided)
+        let dominantColor: [number, number, number] | null = null;
+        let outlineColor: "white" | "black" = "black";
+        if (setTitle) {
+          // Create a temporary canvas to analyze just the overlay image
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = overlayImage.width;
+          tempCanvas.height = overlayImage.height;
+          const tempCtx = tempCanvas.getContext("2d");
+
+          if (tempCtx) {
+            // Draw only the overlay image to the temp canvas
+            tempCtx.drawImage(overlayImage, 0, 0);
+
+            // Extract image data from the overlay image only
+            const overlayImageData = tempCtx.getImageData(
+              0,
+              0,
+              overlayImage.width,
+              overlayImage.height
+            );
+
+            // Get dominant color from overlay
+            dominantColor = getDominantColor(overlayImageData);
+
+            // Calculate contrast color for outline
+            outlineColor = calculateContrast(overlayImageData);
+          }
+        }
+
         // Draw overlay image at the top-left of the specified area
         ctx.drawImage(overlayImage, drawX, drawY, drawWidth, drawHeight);
+
+        // Render set title logo below overlay if provided
+        if (setTitle && dominantColor) {
+          // Generate gradient colors
+          const gradientColors = generateGradientColors(dominantColor);
+
+          // Calculate text position (below overlay with padding)
+
+          const textY = drawY + drawHeight + textPadding;
+
+          // Calculate text size based on canvas dimensions
+          const baseFontSize = Math.max(32, Math.min(canvas.width * 0.1, 72));
+
+          // Set up font with sharp, angular styling - use bold, condensed font
+          ctx.font = `bold ${baseFontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+
+          // Transform text to uppercase
+          const titleText = setTitle.toUpperCase();
+
+          // Measure text width
+          const textMetrics = ctx.measureText(titleText);
+          const textWidth = textMetrics.width;
+          const textX = canvas.width / 2;
+
+          // Create gradient for text fill - diagonal gradient for more dynamic look
+          const gradient = ctx.createLinearGradient(
+            textX - textWidth / 2,
+            textY,
+            textX + textWidth / 2,
+            textY + baseFontSize * 1.2
+          );
+          gradient.addColorStop(0, gradientColors.start);
+          gradient.addColorStop(0.5, gradientColors.end);
+          gradient.addColorStop(1, gradientColors.start);
+
+          // Save context for transform
+          ctx.save();
+
+          // Apply slight skew transform for angular effect (optional - can be removed if too much)
+          // ctx.transform(1, 0, -0.1, 1, 0, 0);
+
+          // Draw multiple outline layers for sharp, bold definition (like the reference image)
+          // Outer thick outline
+          ctx.strokeStyle = outlineColor;
+          ctx.lineWidth = Math.max(4, baseFontSize * 0.15);
+          ctx.lineJoin = "miter";
+          ctx.miterLimit = 10;
+          ctx.strokeText(titleText, textX, textY);
+
+          // Middle outline layer
+          ctx.strokeStyle = outlineColor;
+          ctx.lineWidth = Math.max(2, baseFontSize * 0.08);
+          ctx.strokeText(titleText, textX, textY);
+
+          // Draw text fill with gradient
+          ctx.fillStyle = gradient;
+          ctx.fillText(titleText, textX, textY);
+
+          // Inner thin outline for extra sharpness
+          ctx.strokeStyle = outlineColor;
+          ctx.lineWidth = Math.max(1, baseFontSize * 0.03);
+          ctx.strokeText(titleText, textX, textY);
+
+          // Restore context
+          ctx.restore();
+        }
 
         // Get canvas as data URL for visualization
         const canvasDataUrl = canvas.toDataURL("image/png");
@@ -220,6 +449,7 @@ export function PackModelMesh({
   overlayY = 0,
   overlayWidth = 1,
   overlayHeight = 1,
+  setTitle,
   onCanvasReady,
 }: {
   modelPath: string;
@@ -237,6 +467,7 @@ export function PackModelMesh({
   overlayY?: number; // Overlay Y position (normalized 0-1)
   overlayWidth?: number; // Overlay width (normalized 0-1)
   overlayHeight?: number; // Overlay height (normalized 0-1)
+  setTitle?: string; // Optional set title to render as logo below overlay
   onCanvasReady?: (
     canvasDataUrl: string,
     canvasWidth: number,
@@ -452,7 +683,8 @@ export function PackModelMesh({
               overlayX,
               overlayY,
               overlayWidth,
-              overlayHeight
+              overlayHeight,
+              setTitle
             )
               .then(
                 ({
@@ -562,6 +794,7 @@ export function PackModelMesh({
     overlayY,
     overlayWidth,
     overlayHeight,
+    setTitle,
   ]);
 
   // Handle scale - can be a number or array
@@ -642,6 +875,7 @@ interface PackModelProps {
   overlayY?: number; // Overlay Y position (normalized 0-1, default: 0)
   overlayWidth?: number; // Overlay width (normalized 0-1, default: 1)
   overlayHeight?: number; // Overlay height (normalized 0-1, default: 1)
+  setTitle?: string; // Optional set title to render as logo below overlay
   // Canvas callback
   onCanvasReady?: (
     canvasDataUrl: string,
@@ -675,6 +909,7 @@ export default function PackModel({
   overlayY = 0,
   overlayWidth = 1,
   overlayHeight = 1,
+  setTitle,
   onCanvasReady,
 }: PackModelProps) {
   // Default model path - using cardpack2.glb from assets folder
@@ -727,6 +962,7 @@ export default function PackModel({
             overlayY={overlayY}
             overlayWidth={overlayWidth}
             overlayHeight={overlayHeight}
+            setTitle={setTitle}
             onCanvasReady={onCanvasReady}
           />
         </Suspense>
