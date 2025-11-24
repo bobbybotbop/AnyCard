@@ -13,7 +13,7 @@ const HomePage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto mt-10 relative z-10">
-        <div className="mt-[15vh] h-100">
+        <div className="h-[100vh] w-full">
           <DailyPacks />
         </div>
 

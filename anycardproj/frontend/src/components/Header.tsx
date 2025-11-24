@@ -29,7 +29,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
         isScrolled ? "backdrop-blur-xs" : "bg-transparent"
       }`}
     >
-      <div className=" flex border-b-1 border-white/50 ">
+      <div className=" flex border-b-1 border-white/50 p-0 m-0">
         {/* Left Navigation Icons */}
         <div className="flex items-center w-[40vw] justify-end gap-16 pr-16">
           <Link to="/" className="text-white" title="Home">

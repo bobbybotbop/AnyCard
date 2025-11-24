@@ -1,4 +1,4 @@
-import { Suspense, useRef, useEffect, useMemo } from "react";
+import { Suspense, useRef, useEffect, useMemo, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 import type { Texture, Material } from "three";
@@ -19,13 +19,6 @@ import diffuseTextureUrl from "../assets/trading-card-pack/textures/DIFFUSE.png?
 import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORMAL.png?url";
 // Import the 3D model - useGLTF can handle both imported URLs and string paths
 import cardpackModelUrl from "../assets/cardpack2.glb?url";
-
-// Background overlay constants (position and dimensions in pixels)
-// These values are relative to the canvas size
-// const BACKGROUND_X = 665; // X position in pixels
-// const BACKGROUND_Y = 124; // Y position in pixels
-// const BACKGROUND_WIDTH = 580; // Width in pixels
-// const BACKGROUND_HEIGHT = 850; // Height in pixels
 
 // Overlay size constants
 const MAX_WIDTH = 350; // Maximum width in pixels for overlay image
@@ -272,15 +265,6 @@ async function compositeTextures(
         // Draw base diffuse texture
         ctx.drawImage(baseImage, 0, 0);
 
-        // Draw background behind overlay image
-        // ctx.fillStyle = "#000000"; // Black color
-        // ctx.fillRect(
-        //   BACKGROUND_X,
-        //   BACKGROUND_Y,
-        //   BACKGROUND_WIDTH,
-        //   BACKGROUND_HEIGHT
-        // );
-
         // Calculate overlay size based on MAX_WIDTH and MAX_HEIGHT limits while maintaining aspect ratio
         const overlayImageAspect = overlayImage.width / overlayImage.height;
 
@@ -459,14 +443,13 @@ async function compositeTextures(
           ) => {
             ctx.font = `bold ${fontSize}px "Impact", "Arial Black", "Arial", sans-serif`;
 
-            // Outer thick outline
+            // Set outline properties once
             ctx.strokeStyle = outlineColor;
             ctx.lineWidth = Math.max(1, fontSize * 0.01);
-            ctx.strokeText(char, x, y);
 
+            // Outer thick outline
+            ctx.strokeText(char, x, y);
             // Middle outline layer
-            ctx.strokeStyle = outlineColor;
-            ctx.lineWidth = Math.max(1, fontSize * 0.01);
             ctx.strokeText(char, x, y);
 
             // Draw text fill with gradient
@@ -474,8 +457,6 @@ async function compositeTextures(
             ctx.fillText(char, x, y);
 
             // Inner thin outline for extra sharpness
-            ctx.strokeStyle = outlineColor;
-            ctx.lineWidth = Math.max(1, fontSize * 0.01);
             ctx.strokeText(char, x, y);
           };
 
@@ -585,6 +566,15 @@ export function PackModelMesh({
   overlayHeight = 1,
   setTitle,
   onCanvasReady,
+  enableBobbing = false,
+  bobbingOffset = 0,
+  bobbingSpeed = 1,
+  bobbingAmplitude = 0.1,
+  onClick,
+  originalPosition,
+  originalRotation,
+  resetTrigger,
+  onResetComplete,
 }: {
   modelPath: string;
   diffuseTexture: string;
@@ -607,6 +597,15 @@ export function PackModelMesh({
     canvasWidth: number,
     canvasHeight: number
   ) => void; // Callback to expose canvas data URL and dimensions
+  enableBobbing?: boolean; // Controls whether bobbing is active
+  bobbingOffset?: number; // Phase offset for bobbing animation
+  bobbingSpeed?: number; // Speed of bobbing animation
+  bobbingAmplitude?: number; // Amplitude of bobbing motion
+  onClick?: () => void; // Callback when pack is clicked
+  originalPosition?: [number, number, number]; // Original position to reset to
+  originalRotation?: [number, number, number]; // Original rotation to reset to
+  resetTrigger?: number; // Trigger reset when this value changes
+  onResetComplete?: () => void; // Callback when reset animation completes
 }) {
   const { scene: originalScene } = useGLTF(modelPath);
   const meshRef = useRef<Mesh>(null);
@@ -615,6 +614,20 @@ export function PackModelMesh({
   const canvasRef = useRef<HTMLCanvasElement[]>([]);
   const isMountedRef = useRef(true);
   const accumulatedRotationRef = useRef(0); // Track accumulated rotation for autoRotate
+
+  // Animation state for click-to-center functionality
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const targetPositionRef = useRef<Vector3>(new Vector3(...position));
+  const currentPositionRef = useRef<Vector3>(new Vector3(...position));
+  const targetRotationRef = useRef<Quaternion | null>(null);
+  const currentRotationRef = useRef<Quaternion>(new Quaternion());
+  const originalRotationQuatRef = useRef<Quaternion | null>(null);
+  const lastProcessedResetTriggerRef = useRef<number>(0);
+
+  // Bobbing animation state
+  const baseYPositionRef = useRef<number | null>(null);
+  const wasBobbingRef = useRef<boolean>(false);
 
   // Clone the scene for each instance so multiple models can be rendered independently
   // Without cloning, all instances would share the same Three.js object and appear at the same position
@@ -687,10 +700,313 @@ export function PackModelMesh({
     }
   }, [finalRotation, autoRotate, rotationCenter]);
 
-  // Rotate the model automatically using quaternions
+  // Initialize base Y position when position prop changes
+  useEffect(() => {
+    // Only update baseYPositionRef when position prop changes, not when enableBobbing changes
+    baseYPositionRef.current = position[1];
+  }, [position]);
+
+  // Track bobbing state
+  useEffect(() => {
+    wasBobbingRef.current = enableBobbing;
+  }, [enableBobbing]);
+
+  // Initialize original rotation quaternion
+  useEffect(() => {
+    if (originalRotation) {
+      const originalEuler = new Euler(
+        mu.degToRad(originalRotation[0]),
+        mu.degToRad(originalRotation[1]),
+        mu.degToRad(originalRotation[2]),
+        "XYZ"
+      );
+      const originalUserQuat = new Quaternion().setFromEuler(originalEuler);
+      originalRotationQuatRef.current = baseQuat
+        .clone()
+        .multiply(originalUserQuat);
+    } else {
+      // Use current rotation as original if not provided
+      const targetRef = rotationCenter ? groupRef : meshRef;
+      if (targetRef.current) {
+        originalRotationQuatRef.current = targetRef.current.quaternion.clone();
+      }
+    }
+  }, [originalRotation, baseQuat, rotationCenter]);
+
+  // Handle reset trigger
+  useEffect(() => {
+    if (
+      resetTrigger !== undefined &&
+      resetTrigger > 0 &&
+      resetTrigger !== lastProcessedResetTriggerRef.current &&
+      !isResetting &&
+      !isAnimating
+    ) {
+      lastProcessedResetTriggerRef.current = resetTrigger;
+      setIsResetting(true);
+      setIsAnimating(false); // Stop any ongoing click animation
+
+      // Set target to original position
+      if (originalPosition) {
+        targetPositionRef.current.set(...originalPosition);
+      } else {
+        targetPositionRef.current.set(...position);
+      }
+
+      // Set target rotation to original
+      if (originalRotationQuatRef.current) {
+        targetRotationRef.current = originalRotationQuatRef.current.clone();
+      }
+
+      // Store current position and rotation for smooth interpolation
+      const targetRef = rotationCenter ? groupRef : meshRef;
+      if (targetRef.current) {
+        currentPositionRef.current.copy(targetRef.current.position);
+        currentRotationRef.current.copy(targetRef.current.quaternion);
+      }
+    }
+  }, [
+    resetTrigger,
+    isResetting,
+    isAnimating,
+    originalPosition,
+    position,
+    rotationCenter,
+  ]);
+
+  // Handle click to animate to center and face camera
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+
+    if (isAnimating || isResetting) return; // Prevent clicks during animation or reset
+
+    // Call onClick callback if provided
+    if (onClick) {
+      onClick();
+    }
+
+    setIsAnimating(true);
+
+    // Reset target rotation so it gets calculated in useFrame
+    targetRotationRef.current = null;
+
+    // Select pack screen position - where the card moves to the center of the screen
+    targetPositionRef.current.set(0, 0.4, 1.7);
+
+    // Store current position and rotation for smooth interpolation
+    const targetRef = rotationCenter ? groupRef : meshRef;
+    if (!targetRef.current) return;
+
+    currentPositionRef.current.copy(targetRef.current.position);
+    currentRotationRef.current.copy(targetRef.current.quaternion);
+  };
+
+  // Rotate the model automatically using quaternions and handle click animation
   useFrame((state, delta) => {
     const targetRef = rotationCenter ? groupRef : meshRef;
-    if (targetRef.current && autoRotate) {
+    const { camera } = state;
+
+    if (!targetRef.current) return;
+
+    // Handle reset animation
+    if (isResetting) {
+      const lerpSpeed = 0.05; // Same speed as click animation
+
+      // Interpolate position back to original
+      currentPositionRef.current.lerp(targetPositionRef.current, lerpSpeed);
+
+      // Interpolate rotation back to original using quaternion slerp
+      if (targetRotationRef.current) {
+        currentRotationRef.current.slerp(targetRotationRef.current, lerpSpeed);
+      }
+
+      // Apply to the appropriate ref
+      if (rotationCenter) {
+        groupRef.current.position.copy(currentPositionRef.current);
+        groupRef.current.quaternion.copy(currentRotationRef.current);
+      } else {
+        if (meshRef.current) {
+          meshRef.current.position.copy(currentPositionRef.current);
+          meshRef.current.quaternion.copy(currentRotationRef.current);
+        }
+      }
+
+      // Check if reset animation is complete
+      const positionDiff = currentPositionRef.current.distanceTo(
+        targetPositionRef.current
+      );
+      const rotationDiff = targetRotationRef.current
+        ? currentRotationRef.current.angleTo(targetRotationRef.current)
+        : 0;
+
+      if (positionDiff < 0.01 && rotationDiff < 0.01) {
+        // Reset complete - snap to exact position/rotation
+        if (rotationCenter) {
+          groupRef.current.position.copy(targetPositionRef.current);
+          if (targetRotationRef.current) {
+            groupRef.current.quaternion.copy(targetRotationRef.current);
+          }
+        } else {
+          if (meshRef.current) {
+            meshRef.current.position.copy(targetPositionRef.current);
+            if (targetRotationRef.current) {
+              meshRef.current.quaternion.copy(targetRotationRef.current);
+            }
+          }
+        }
+        setIsResetting(false);
+        // Call completion callback
+        if (onResetComplete) {
+          onResetComplete();
+        }
+      }
+
+      return; // Skip autoRotate and bobbing during reset animation
+    }
+
+    // Handle click animation
+    if (isAnimating) {
+      // Calculate rotation to face camera on first frame of animation
+      if (!targetRotationRef.current) {
+        // Get camera position
+        const cameraPosition = new Vector3();
+        camera.getWorldPosition(cameraPosition);
+
+        // Calculate direction from model to camera
+        // Use Y=0 for rotation calculation to prevent upside-down orientation
+        const targetPosForRotation = new Vector3(
+          targetPositionRef.current.x,
+          0, // Use 0 for Y to keep rotation consistent
+          targetPositionRef.current.z
+        );
+        const directionToCamera = new Vector3()
+          .subVectors(cameraPosition, targetPosForRotation)
+          .normalize();
+
+        // The model's forward direction - use -Z since it's facing opposite
+        // We'll flip it 180 degrees to face the camera
+        const modelForward = new Vector3(0, 0, -1);
+
+        // Create quaternion to rotate model forward to camera direction
+        const rotationQuat = new Quaternion().setFromUnitVectors(
+          modelForward,
+          directionToCamera
+        );
+
+        // Add 180-degree flip around Y axis to face camera instead of away
+        const flip180Y = new Quaternion().setFromAxisAngle(
+          new Vector3(0, 1, 0),
+          mu.degToRad(180)
+        );
+
+        // Add 180-degree flip around X axis to fix upside down orientation
+        const flip180X = new Quaternion().setFromAxisAngle(
+          new Vector3(1, 0, 0),
+          mu.degToRad(180)
+        );
+
+        // Add 90-degree correction around X axis to fix the upward tilt
+        const correction90 = new Quaternion().setFromAxisAngle(
+          new Vector3(1, 0, 0),
+          mu.degToRad(-90)
+        );
+
+        // Apply rotation to face camera, then flip Y, then flip X, then correction, then base rotation
+        targetRotationRef.current = rotationQuat
+          .clone()
+          .multiply(flip180Y)
+          .multiply(flip180X)
+          .multiply(correction90)
+          .multiply(baseQuat);
+      }
+
+      const lerpSpeed = 0.05; // Adjust this value to control animation speed (0.01 = slow, 0.1 = fast)
+
+      // Interpolate position
+      currentPositionRef.current.lerp(targetPositionRef.current, lerpSpeed);
+
+      // Interpolate rotation using quaternion slerp
+      if (targetRotationRef.current) {
+        currentRotationRef.current.slerp(targetRotationRef.current, lerpSpeed);
+      }
+
+      // Apply to the appropriate ref
+      if (rotationCenter) {
+        // For rotationCenter, animate the group position
+        groupRef.current.position.copy(currentPositionRef.current);
+        groupRef.current.quaternion.copy(currentRotationRef.current);
+      } else {
+        // For normal case, animate the mesh position and rotation
+        if (meshRef.current) {
+          meshRef.current.position.copy(currentPositionRef.current);
+          meshRef.current.quaternion.copy(currentRotationRef.current);
+        }
+      }
+
+      // Check if animation is complete (close enough to target)
+      const positionDiff = currentPositionRef.current.distanceTo(
+        targetPositionRef.current
+      );
+      const rotationDiff = targetRotationRef.current
+        ? currentRotationRef.current.angleTo(targetRotationRef.current)
+        : 0;
+
+      if (positionDiff < 0.01 && rotationDiff < 0.01) {
+        // Animation complete
+        if (rotationCenter) {
+          groupRef.current.position.copy(targetPositionRef.current);
+          if (targetRotationRef.current) {
+            groupRef.current.quaternion.copy(targetRotationRef.current);
+          }
+        } else {
+          if (meshRef.current) {
+            meshRef.current.position.copy(targetPositionRef.current);
+            if (targetRotationRef.current) {
+              meshRef.current.quaternion.copy(targetRotationRef.current);
+            }
+          }
+        }
+        setIsAnimating(false);
+      }
+
+      return; // Skip autoRotate and bobbing during click animation
+    }
+
+    // Bobbing animation logic (only when not animating)
+    if (enableBobbing) {
+      // Initialize base Y position if not set
+      if (baseYPositionRef.current === null) {
+        baseYPositionRef.current = targetRef.current.position.y;
+        wasBobbingRef.current = true;
+      }
+
+      // Apply bobbing animation
+      if (baseYPositionRef.current !== null) {
+        const time = state.clock.elapsedTime;
+        const bobbingY =
+          baseYPositionRef.current +
+          Math.sin(time * bobbingSpeed + bobbingOffset) * bobbingAmplitude;
+
+        if (rotationCenter) {
+          groupRef.current.position.y = bobbingY;
+        } else {
+          if (meshRef.current) {
+            meshRef.current.position.y = bobbingY;
+          }
+        }
+      }
+    } else {
+      // When bobbing stops, just mark that we're no longer bobbing
+      // Don't try to maintain Y position - let it stay where it naturally is
+      if (wasBobbingRef.current) {
+        wasBobbingRef.current = false;
+        // Clear baseYPositionRef so it can be reinitialized if bobbing restarts
+        baseYPositionRef.current = null;
+      }
+    }
+
+    // Auto-rotate logic (only when not animating)
+    if (autoRotate) {
       // Accumulate rotation angle
       accumulatedRotationRef.current += delta * rotationSpeed;
 
@@ -742,6 +1058,33 @@ export function PackModelMesh({
     // Clear old canvas references (canvases are kept alive by CanvasTexture)
     canvasRef.current = [];
 
+    // Helper function to load diffuse and normal textures
+    const loadTextures = (
+      diffuseUrl: string,
+      onComplete: (diffuseTex: Texture, normalTex: Texture) => void
+    ) => {
+      loader.load(diffuseUrl, (diffuseTex: Texture) => {
+        if (!isMountedRef.current) {
+          diffuseTex.dispose();
+          return;
+        }
+
+        diffuseTex.flipY = false;
+        diffuseTex.colorSpace = SRGBColorSpace;
+
+        loader.load(normalTexture, (normalTex: Texture) => {
+          if (!isMountedRef.current) {
+            diffuseTex.dispose();
+            normalTex.dispose();
+            return;
+          }
+
+          normalTex.flipY = false;
+          onComplete(diffuseTex, normalTex);
+        });
+      });
+    };
+
     scene.traverse((child) => {
       if (child instanceof Mesh) {
         const mesh = child as Mesh;
@@ -766,43 +1109,33 @@ export function PackModelMesh({
 
             texturesRef.current.push(newTex);
 
-            // Apply textures to material
-            if (mesh.material instanceof StandardMaterial) {
+            // Helper function to apply texture to a single material
+            const applyToMaterial = (mat: StandardMaterial) => {
               // Dispose old texture if it exists
-              if (mesh.material.map && mesh.material.map !== newTex) {
-                const oldTex = mesh.material.map;
+              if (mat.map && mat.map !== newTex) {
+                const oldTex = mat.map;
                 if (!texturesRef.current.includes(oldTex)) {
                   oldTex.dispose();
                 }
               }
-              mesh.material.map = newTex;
-              mesh.material.normalMap = normalTex;
+              mat.map = newTex;
+              mat.normalMap = normalTex;
               // Enhance color saturation by adjusting material properties
-              mesh.material.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
-              mesh.material.needsUpdate = true;
+              mat.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
+              mat.needsUpdate = true;
               // Ensure texture is updated
               if (newTex instanceof CanvasTexture) {
                 newTex.needsUpdate = true;
               }
+            };
+
+            // Apply textures to material
+            if (mesh.material instanceof StandardMaterial) {
+              applyToMaterial(mesh.material);
             } else if (Array.isArray(mesh.material)) {
               mesh.material.forEach((mat: Material) => {
                 if (mat instanceof StandardMaterial) {
-                  // Dispose old texture if it exists
-                  if (mat.map && mat.map !== newTex) {
-                    const oldTex = mat.map;
-                    if (!texturesRef.current.includes(oldTex)) {
-                      oldTex.dispose();
-                    }
-                  }
-                  mat.map = newTex;
-                  mat.normalMap = normalTex;
-                  // Enhance color saturation by adjusting material properties
-                  mat.color.setRGB(1.1, 1.1, 1.1); // Slight color boost
-                  mat.needsUpdate = true;
-                  // Ensure texture is updated
-                  if (newTex instanceof CanvasTexture) {
-                    newTex.needsUpdate = true;
-                  }
+                  applyToMaterial(mat);
                 }
               });
             }
@@ -861,50 +1194,14 @@ export function PackModelMesh({
                 if (!isMountedRef.current) return;
 
                 // Fallback to regular diffuse texture loading
-                loader.load(diffuseTexture, (diffuseTex: Texture) => {
-                  if (!isMountedRef.current) {
-                    diffuseTex.dispose();
-                    return;
-                  }
-
-                  diffuseTex.flipY = false;
-                  diffuseTex.colorSpace = SRGBColorSpace;
-
-                  loader.load(normalTexture, (normalTex: Texture) => {
-                    if (!isMountedRef.current) {
-                      diffuseTex.dispose();
-                      normalTex.dispose();
-                      return;
-                    }
-
-                    normalTex.flipY = false;
-                    applyTexture(diffuseTex, normalTex);
-                  });
+                loadTextures(diffuseTexture, (diffuseTex, normalTex) => {
+                  applyTexture(diffuseTex, normalTex);
                 });
               });
           } else {
             // No overlay - use existing logic to load diffuse texture directly
-            loader.load(diffuseTexture, (diffuseTex: Texture) => {
-              if (!isMountedRef.current) {
-                diffuseTex.dispose();
-                return;
-              }
-
-              diffuseTex.flipY = false;
-              // Set color space to sRGB for more vibrant colors
-              diffuseTex.colorSpace = SRGBColorSpace;
-
-              // Load normal texture
-              loader.load(normalTexture, (normalTex: Texture) => {
-                if (!isMountedRef.current) {
-                  diffuseTex.dispose();
-                  normalTex.dispose();
-                  return;
-                }
-
-                normalTex.flipY = false;
-                applyTexture(diffuseTex, normalTex);
-              });
+            loadTextures(diffuseTexture, (diffuseTex, normalTex) => {
+              applyTexture(diffuseTex, normalTex);
             });
           }
         }
@@ -937,12 +1234,11 @@ export function PackModelMesh({
   // Set rotation order for Euler conversion (quaternions handle the combination without gimbal lock)
   // Using XYZ order since quaternions already handle the rotation combination correctly
   useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.order = "XYZ";
-    }
-    if (groupRef.current) {
-      groupRef.current.rotation.order = "XYZ";
-    }
+    [meshRef.current, groupRef.current].forEach((ref) => {
+      if (ref) {
+        ref.rotation.order = "XYZ";
+      }
+    });
   }, []);
 
   // If rotationCenter is specified, wrap in a Group to handle pivot point
@@ -955,7 +1251,12 @@ export function PackModelMesh({
     ];
 
     return (
-      <group ref={groupRef} position={rotationCenter} rotation={finalRotation}>
+      <group
+        ref={groupRef}
+        position={rotationCenter}
+        rotation={finalRotation}
+        onClick={handleClick}
+      >
         <primitive
           ref={meshRef}
           object={scene}
@@ -974,6 +1275,7 @@ export function PackModelMesh({
       scale={scaleValue}
       position={position}
       rotation={finalRotation}
+      onClick={handleClick}
     />
   );
 }
