@@ -17,7 +17,3 @@ app.listen(port, () => {
 
 // Mount routes for user routes
 app.use("/api/users", userRoute);
-
-// Mount routes for other depedencies our project lies on
-// such as generating random card packs for the user
-// app.use("api/external", externalRoute);

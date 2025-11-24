@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-//import { User } from "../models/model.ts";
 
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
