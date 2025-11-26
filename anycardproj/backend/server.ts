@@ -637,7 +637,7 @@ app.post("/api/openDailyPack/:uid", async (req, res) => {
     const awarded: Card[] = [];
 
     // pull at max 10 cards from user
-    while (awarded.length <= 10 || availableCards.length == 0) {
+    while (awarded.length <= 10 && availableCards.length != 0) {
       // grab random card
       const index = Math.floor(Math.random() * availableCards.length);
       awarded.push(availableCards[index]);
