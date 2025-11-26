@@ -37,3 +37,7 @@ export interface Set {
   coverImage: string;
   cards: Card[];
 }
+
+export interface WeatherResponse {
+  raining: boolean;
+}

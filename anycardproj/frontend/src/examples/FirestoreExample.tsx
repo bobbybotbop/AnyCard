@@ -1,12 +1,12 @@
 import { useState } from "react";
-import {
-  addDocument,
-  setDocument,
-  updateDocument,
-  addCardToCollection,
-} from "../utils/firestore";
+// import {
+//   addDocument,
+//   setDocument,
+//   updateDocument,
+//   addCardToCollection,
+// } from "../utils/firestore";
 import { auth } from "../auth/firebase";
-import { Card } from "../data/cards";
+// import { Card } from "../data/cards";
 
 /**
  * Example component showing how to add data to Firestore
@@ -28,21 +28,21 @@ const FirestoreExample = () => {
         return;
       }
 
-      const newCard: Card = {
-        name: "Pikachu",
-        picture: "/pokemon/pikachu.jpg",
-        hp: 60,
-        rarity: "rare",
-        attacks: [
-          { name: "Thunder Shock", damage: 10 },
-          { name: "Thunderbolt", damage: 50 },
-        ],
-        chance: 0.15,
-      };
-
-      // Add to user's card collection
-      const docRef = await addCardToCollection(user.uid, newCard);
-      setMessage(`Card added with ID: ${docRef.id}`);
+      // Example card data (commented out until firestore utils are available)
+      // const newCard: Card = {
+      //   name: "Pikachu",
+      //   picture: "/pokemon/pikachu.jpg",
+      //   hp: 60,
+      //   rarity: "rare",
+      //   attacks: [
+      //     { name: "Thunder Shock", damage: 10 },
+      //     { name: "Thunderbolt", damage: 50 },
+      //   ],
+      //   fromPack: "Pokemon Set",
+      // };
+      // const docRef = await addCardToCollection(user.uid, newCard);
+      // setMessage(`Card added with ID: ${docRef.id}`);
+      setMessage("Card creation disabled - firestore utils not available");
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -56,14 +56,15 @@ const FirestoreExample = () => {
     setMessage("");
 
     try {
-      const data = {
-        name: "Test Document",
-        value: 123,
-        tags: ["test", "example"],
-      };
-
-      const docRef = await addDocument("testCollection", data);
-      setMessage(`Document added with ID: ${docRef.id}`);
+      // Example data (commented out until firestore utils are available)
+      // const data = {
+      //   name: "Test Document",
+      //   value: 123,
+      //   tags: ["test", "example"],
+      // };
+      // const docRef = await addDocument("testCollection", data);
+      // setMessage(`Document added with ID: ${docRef.id}`);
+      setMessage("Document creation disabled - firestore utils not available");
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -83,17 +84,17 @@ const FirestoreExample = () => {
         return;
       }
 
-      const profileData = {
-        displayName: user.displayName || "Anonymous",
-        email: user.email,
-        photoURL: user.photoURL,
-        level: 1,
-        totalCards: 0,
-      };
-
-      // This will create or update the user document
-      await setDocument("users", user.uid, profileData);
-      setMessage("User profile saved successfully");
+      // Example profile data (commented out until firestore utils are available)
+      // const profileData = {
+      //   displayName: user.displayName || "Anonymous",
+      //   email: user.email,
+      //   photoURL: user.photoURL,
+      //   level: 1,
+      //   totalCards: 0,
+      // };
+      // await setDocument("users", user.uid, profileData);
+      // setMessage("User profile saved successfully");
+      setMessage("User profile save disabled - firestore utils not available");
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -114,11 +115,12 @@ const FirestoreExample = () => {
       }
 
       // Only update specific fields
-      await updateDocument("users", user.uid, {
-        level: 42,
-        lastLogin: new Date().toISOString(),
-      });
-      setMessage("User profile updated successfully");
+      // await updateDocument("users", user.uid, {
+      //   level: 42,
+      //   lastLogin: new Date().toISOString(),
+      // });
+      // setMessage("User profile updated successfully");
+      setMessage("User profile update disabled - firestore utils not available");
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {

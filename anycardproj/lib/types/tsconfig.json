@@ -5,7 +5,9 @@
         "strict": true,
         "declaration": true,
         "outDir": "./dist",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "lib": ["ES2020"],
+        "skipLibCheck": true
     },
     "include": ["*.ts"]
 }

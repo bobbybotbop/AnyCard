@@ -1,6 +1,5 @@
 import { auth } from "./firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { useAuth } from "../auth/authProvider";
 import { createUser } from "../api/cards";
 import { newUser } from "@full-stack/types";
 
