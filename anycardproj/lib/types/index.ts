@@ -1,9 +1,4 @@
 // Shared types across both frontend and backend!
-
-export type WeatherResponse = {
-  raining: boolean;
-};
-
 export interface newUser {
   UID: string;
   email: string;

@@ -26,5 +26,9 @@
     "scripts": {
         "dev": "nodemon server.ts",
         "build": "tsc"
-    }
+    },
+    "description": "",
+    "keywords": [],
+    "author": "",
+    "type": "commonjs"
 }

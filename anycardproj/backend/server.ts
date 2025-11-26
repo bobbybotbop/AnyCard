@@ -2,7 +2,6 @@ import path from "path";
 import express, { Express } from "express";
 import cors from "cors";
 import {
-  WeatherResponse,
   newUser,
   userData,
   Set,
@@ -28,7 +27,8 @@ app.use(express.json());
 
 var admin = require("firebase-admin");
 
-var serviceAccount = require("./secrets/ACFire.json");
+// var serviceAccount = require("./secrets/ACFire.json")
+var serviceAccount = require("../backend/secrets/ACFire.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -217,6 +217,7 @@ interface OpenRouterResponse {
 async function callOpenRouter(input: string): Promise<OpenRouterResponse> {
   // OpenRouter API key
   const openRouterApiKey = (process.env.OPENROUTER_API_KEY || "").trim();
+  console.log(openRouterApiKey);
 
   if (!openRouterApiKey) {
     throw new Error(
@@ -603,5 +604,66 @@ app.get("/api/getDailyPacks", async (req, res) => {
 });
 
 app.listen(port, hostname, () => {
-  console.log("Listening");
+  console.log("Listening on " + port);
+});
+
+// POST /api/openDailyPack
+app.post("/api/openDailyPack/:uid", async (req, res) => {
+  const { dailyPackId, userUid } = req.body || {};
+
+  // 1) Basic validation
+  if (!dailyPackId || typeof dailyPackId !== "string") {
+    return res.status(400).json({ error: "dailyPackId required" });
+  }
+
+  if (!userUid || typeof userUid !== "string") {
+    return res.status(400).json({ error: "dailyPackId required" });
+  }
+
+  try {
+    const packRef = db.collection("dailyPacks").doc(dailyPackId);
+    const packSnap = await packRef.get();
+    if (!packSnap.exists)
+      return res.status(404).json({ error: "Pack not found" });
+    const packData: any = packSnap.data();
+
+    const availableCards: any[] = Array.isArray(packData?.cards)
+      ? packData.cards
+      : [];
+    if (availableCards.length === 0) {
+      return res.status(400).json({ error: "Pack has no cards configured" });
+    }
+
+    const awarded: Card[] = [];
+
+    // pull at max 10 cards from user
+    while (awarded.length <= 10 || availableCards.length == 0) {
+      // grab random card
+      const index = Math.floor(Math.random() * availableCards.length);
+      awarded.push(availableCards[index]);
+      availableCards.splice(index, 1);
+    }
+
+    const userData = await getUserData(userUid);
+    const cards = userData?.cards;
+    if (!userData) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
+    if (!cards) {
+      userData.cards = awarded;
+    } else {
+      userData.cards.push(awarded);
+    }
+
+    return res.status(200).json({
+      awarded,
+      message: `Opened ${awarded.length} cards`,
+    });
+  } catch (err: any) {
+    console.error("openDailyPack failed:", err);
+    return res
+      .status(500)
+      .json({ error: err.message || "Failed to open pack" });
+  }
 });
