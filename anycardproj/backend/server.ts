@@ -94,6 +94,27 @@ async function getUserData(uid: string): Promise<userData | null> {
   }
 }
 
+async function setUserData(uid: string, data: any): Promise<boolean> {
+  try {
+    if (!data || !uid) {
+      return false;
+    }
+
+    const userRef = db.collection("users").doc(uid); // DocRef
+    const userSnap = await userRef.get(); // Snapshot
+
+    if (!userSnap.exists) {
+      return false;
+    }
+
+    console.log("aye");
+    await userRef.update(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function getSetFromCollection(
   collection: string,
   setId: string
@@ -608,8 +629,9 @@ app.listen(port, hostname, () => {
 });
 
 // POST /api/openDailyPack
-app.post("/api/openDailyPack/:uid", async (req, res) => {
-  const { dailyPackId, userUid } = req.body || {};
+app.post("/api/openDailyPack/:userUid", async (req, res) => {
+  const { userUid } = req.params;
+  const { dailyPackId } = req.body || {};
 
   // 1) Basic validation
   if (!dailyPackId || typeof dailyPackId !== "string") {
@@ -645,16 +667,20 @@ app.post("/api/openDailyPack/:uid", async (req, res) => {
     }
 
     const userData = await getUserData(userUid);
-    const cards = userData?.cards;
     if (!userData) {
       return res.status(400).json({ error: "User not found" });
     }
+    let updatedCards;
 
-    if (!cards) {
-      userData.cards = awarded;
+    if (userData.cards) {
+      updatedCards = [...userData.cards, ...awarded];
     } else {
-      userData.cards.push(awarded);
+      updatedCards = awarded;
     }
+
+    const data = { cards: updatedCards };
+    const isSet = await setUserData(userUid, data);
+    if (!isSet) throw Error;
 
     return res.status(200).json({
       awarded,
