@@ -13,6 +13,7 @@ import router from "./routers";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { generateRandomCardSetPrompt } from "./prompts";
+const { db, auth } = require("./firebase");
 
 // Load environment variables from .env file
 dotenv.config();

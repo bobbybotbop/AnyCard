@@ -8,16 +8,9 @@ import {
 } from "@full-stack/types";
 import fetch from "node-fetch";
 import { generateRandomCardSetPrompt } from "./prompts";
+const { db, auth } = require("./firebase");
 
-var admin = require("firebase-admin");
-
-const db = admin.firestore();
 const WIKIPEDIA_RATE_LIMIT_DELAY = 2000;
-var serviceAccount = require("../backend/secrets/ACFire.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
 
 // ============= DATABASE OPERATIONS =============
 
