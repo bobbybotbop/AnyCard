@@ -628,6 +628,22 @@ app.listen(port, hostname, () => {
   console.log("Listening on " + port);
 });
 
+app.get("/api/getUserInventory/:userUid", async (req, res) => {
+  const { userUid } = req.params;
+  if (!userUid) return res.status(400).json({ error: "user not given" });
+
+  try {
+    const userdata = await getUserData(userUid);
+    if (!userdata) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+
+    return res.status(200).json({ cards: userdata.cards });
+  } catch {
+    return res.status(400).json({ error: "Invalid user" });
+  }
+});
+
 // POST /api/openDailyPack
 app.post("/api/openDailyPack/:userUid", async (req, res) => {
   const { userUid } = req.params;
