@@ -438,12 +438,13 @@ export async function getAllSets(): Promise<Set[]> {
   }
 }
 
-export async function openDailyPack(
+export async function openPack(
   userUid: string,
-  dailyPackId: string
+  packId: string,
+  collection: string = "dailyPacks"
 ): Promise<{ awarded: Card[]; message: string }> {
   try {
-    const packRef = db.collection("dailyPacks").doc(dailyPackId);
+    const packRef = db.collection(collection).doc(packId);
     const packSnap = await packRef.get();
     if (!packSnap.exists) {
       throw new Error("Pack not found");
@@ -459,7 +460,7 @@ export async function openDailyPack(
 
     const awarded: Card[] = [];
 
-    while (awarded.length <= 10 && availableCards.length != 0) {
+    while (awarded.length < 10 && availableCards.length != 0) {
       const index = Math.floor(Math.random() * availableCards.length);
       awarded.push(availableCards[index]);
       availableCards.splice(index, 1);
@@ -481,12 +482,14 @@ export async function openDailyPack(
     const isSet = await setUserData(userUid, data);
     if (!isSet) throw new Error("Failed to update user data");
 
+    console.log("Opened cards:", awarded);
+
     return {
       awarded,
       message: `Opened ${awarded.length} cards`,
     };
   } catch (err: any) {
-    console.error("openDailyPack failed:", err);
+    console.error("openPack failed:", err);
     throw err;
   }
 }

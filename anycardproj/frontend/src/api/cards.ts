@@ -1,12 +1,5 @@
 import { BACKEND_BASE_PATH } from "../constants/Navigation";
-import { newUser, userData, Set } from "@full-stack/types";
-
-export interface Card {
-  id?: string;
-  name: string;
-  description?: string;
-  // Add other card properties here
-}
+import { newUser, userData, Set, Card } from "@full-stack/types";
 
 // CREATE - POST /api/createCard
 export const createCard = async (cardData: Omit<Card, "id">): Promise<Card> => {
@@ -165,6 +158,32 @@ export const getAllSets = async (): Promise<Set[]> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to get all sets");
+  }
+
+  return response.json();
+};
+
+export interface OpenPackResponse {
+  awarded: Card[];
+  message: string;
+}
+
+export const openPack = async (
+  userUid: string,
+  packId: string,
+  collection: string
+): Promise<OpenPackResponse> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/openPack/${userUid}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ packId, collection }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to open pack");
   }
 
   return response.json();

@@ -2,6 +2,8 @@ import { Suspense, useRef, useEffect, useMemo, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 import type { Texture, Material } from "three";
+import CardDrawings from "./CardDrawings";
+import { Card as CardType } from "@full-stack/types";
 import {
   Mesh,
   TextureLoader,
@@ -12,6 +14,7 @@ import {
   Euler,
   Quaternion,
   Vector3,
+  Raycaster,
 } from "three";
 
 // Import textures using Vite's asset handling with ?url suffix to get the URL string
@@ -549,6 +552,9 @@ export function PackModelMesh({
   onResetComplete,
   hoverable = true,
   clickable = true,
+  onShowOverlay,
+  onAnimationComplete,
+  isSelected: isSelectedProp,
 }: {
   modelPath: string;
   diffuseTexture: string;
@@ -582,6 +588,10 @@ export function PackModelMesh({
   onResetComplete?: () => void; // Callback when reset animation completes
   hoverable?: boolean; // Enable/disable hover scale effect (default: true)
   clickable?: boolean; // Enable/disable click interaction (default: true)
+  onShowOverlay?: (show: boolean) => void; // Callback when overlay should be shown/hidden
+  onAnimationComplete?: () => void; // Callback when click animation completes
+  isSelected?: boolean; // External control for selected state (after animation completes)
+  cards?: CardType[]; // Cards to display in the overlay
 }) {
   const { scene: originalScene } = useGLTF(modelPath);
   const meshRef = useRef<Mesh>(null);
@@ -594,12 +604,27 @@ export function PackModelMesh({
   // Animation state for click-to-center functionality
   const [isAnimating, setIsAnimating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  // Track if pack is in selected state (after animation completes)
+  // Can be controlled externally via isSelectedProp or internally when animation completes
+  const [isSelected, setIsSelected] = useState(isSelectedProp ?? false);
+  const [isMovingDown, setIsMovingDown] = useState(false); // Track if pack is moving downwards (second click)
+  const [show2DOverlay, setShow2DOverlay] = useState(false); // Track if 2D overlay should be shown
+  const [clicksDisabled, setClicksDisabled] = useState(false); // Track if click listener should be disabled
+
+  // Sync internal isSelected state with external prop when prop changes
+  useEffect(() => {
+    if (isSelectedProp !== undefined) {
+      setIsSelected(isSelectedProp);
+    }
+  }, [isSelectedProp]);
   const targetPositionRef = useRef<Vector3>(new Vector3(...position));
   const currentPositionRef = useRef<Vector3>(new Vector3(...position));
   const targetRotationRef = useRef<Quaternion | null>(null);
   const currentRotationRef = useRef<Quaternion>(new Quaternion());
   const originalRotationQuatRef = useRef<Quaternion | null>(null);
   const lastProcessedResetTriggerRef = useRef<number>(0);
+  const accumulatedRotationAngleRef = useRef<number>(0); // Track accumulated rotation angle for 360-degree spin
+  const startRotationQuatRef = useRef<Quaternion | null>(null); // Store starting rotation for spin animation
 
   // Bobbing animation state
   const baseYPositionRef = useRef<number | null>(null);
@@ -672,8 +697,15 @@ export function PackModelMesh({
   }, [rotation, autoRotate]);
 
   // Set initial rotation when autoRotate is enabled or rotation changes
+  // Skip this if pack is animating or selected to preserve the animated rotation
   useEffect(() => {
-    if (!autoRotate) {
+    if (
+      !autoRotate &&
+      !isAnimating &&
+      !isSelected &&
+      !isResetting &&
+      !isMovingDown
+    ) {
       const targetRef = rotationCenter ? groupRef : meshRef;
       if (targetRef.current) {
         targetRef.current.rotation.set(
@@ -683,7 +715,15 @@ export function PackModelMesh({
         );
       }
     }
-  }, [finalRotation, autoRotate, rotationCenter]);
+  }, [
+    finalRotation,
+    autoRotate,
+    rotationCenter,
+    isAnimating,
+    isSelected,
+    isResetting,
+    isMovingDown,
+  ]);
 
   // Initialize base Y position when position prop changes
   useEffect(() => {
@@ -730,6 +770,10 @@ export function PackModelMesh({
       lastProcessedResetTriggerRef.current = resetTrigger;
       setIsResetting(true);
       setIsAnimating(false); // Stop any ongoing click animation
+      setIsSelected(false); // Clear selected state when resetting
+      setIsMovingDown(false); // Clear downward movement state
+      setShow2DOverlay(false); // Hide 2D overlay
+      setClicksDisabled(false); // Re-enable clicks
 
       // Reset hover state and scale
       setIsHovered(false);
@@ -772,7 +816,8 @@ export function PackModelMesh({
   // Handle hover enter
   const handlePointerEnter = (event: any) => {
     event.stopPropagation();
-    if (!hoverable || isAnimating || isResetting) return; // Don't hover if disabled or during animation or reset
+    // Don't hover if disabled, during animation/reset, or if pack is selected
+    if (!hoverable || isAnimating || isResetting || isSelected) return;
     setIsHovered(true);
     // Set target scale to 1.10x (10% larger)
     const baseScale = Array.isArray(scale) ? scale[0] : scale;
@@ -786,7 +831,8 @@ export function PackModelMesh({
   // Handle hover leave
   const handlePointerLeave = (event: any) => {
     event.stopPropagation();
-    if (!hoverable || isAnimating || isResetting) return; // Don't process hover leave if disabled or during animation or reset
+    // Don't process hover leave if hover is disabled or pack is selected
+    if (!hoverable || isSelected) return;
     setIsHovered(false);
     // Reset scale to original
     const baseScale = Array.isArray(scale) ? scale[0] : scale;
@@ -797,11 +843,72 @@ export function PackModelMesh({
   const handleClick = (event: any) => {
     event.stopPropagation();
 
-    if (!clickable) return; // Don't process clicks if clickable is disabled
-    if (isAnimating || isResetting) return; // Prevent clicks during animation or reset
+    if (!clickable || clicksDisabled) return; // Don't process clicks if clickable is disabled or clicks are disabled
+    if (isAnimating || isResetting || isMovingDown) return; // Prevent clicks during animation or reset
 
-    // Reset hover state when clicking
+    // If pack is already selected (second click), move it down and show overlay
+    if (isSelected) {
+      setIsMovingDown(true);
+      setShow2DOverlay(true);
+      setClicksDisabled(true); // Disable click listener
+
+      // Call onClick callback to trigger pack opening API call
+      if (onClick) {
+        onClick();
+      }
+
+      // Move mesh downwards - user can adjust this value later
+      const targetRef = rotationCenter ? groupRef : meshRef;
+      if (targetRef.current) {
+        const currentY = targetRef.current.position.y;
+        targetPositionRef.current.set(
+          targetRef.current.position.x,
+          currentY - 3.3, // Move down by 1.5 unit (adjustable)
+          targetRef.current.position.z
+        );
+        currentPositionRef.current.copy(targetRef.current.position);
+
+        // Set up rotation: rotate 360 degrees around Y axis
+        // Store the starting rotation quaternion
+        const startRotation = targetRef.current.quaternion.clone();
+        startRotationQuatRef.current = startRotation;
+        currentRotationRef.current.copy(startRotation);
+
+        // Initialize accumulated rotation angle (we'll animate from 0 to 360 degrees)
+        accumulatedRotationAngleRef.current = 0;
+
+        // Set target rotation as starting rotation + 360 degrees
+        const rotation360Y = new Quaternion().setFromAxisAngle(
+          new Vector3(1, 0, 0),
+          mu.degToRad(360)
+        );
+        targetRotationRef.current = startRotation
+          .clone()
+          .multiply(rotation360Y);
+      }
+
+      return;
+    }
+
+    // First click: animate to center and face camera
+    // Reset hover state and selected state when clicking
     setIsHovered(false);
+    setIsSelected(false);
+
+    // Store current position, rotation, and scale for smooth interpolation
+    // Do this BEFORE calling onClick callback to ensure we capture the current state
+    const targetRef = rotationCenter ? groupRef : meshRef;
+    if (!targetRef.current) return;
+
+    // Always sync currentPositionRef with actual mesh position before starting animation
+    // This ensures that after a reset, we start from the correct position
+    currentPositionRef.current.copy(targetRef.current.position);
+    currentRotationRef.current.copy(targetRef.current.quaternion);
+
+    // Store current scale
+    if (meshRef.current) {
+      currentScaleRef.current.copy(meshRef.current.scale);
+    }
 
     // Call onClick callback if provided
     if (onClick) {
@@ -823,18 +930,6 @@ export function PackModelMesh({
       baseScale * 1.5,
       baseScale * 1.5
     );
-
-    // Store current position, rotation, and scale for smooth interpolation
-    const targetRef = rotationCenter ? groupRef : meshRef;
-    if (!targetRef.current) return;
-
-    currentPositionRef.current.copy(targetRef.current.position);
-    currentRotationRef.current.copy(targetRef.current.quaternion);
-
-    // Store current scale
-    if (meshRef.current) {
-      currentScaleRef.current.copy(meshRef.current.scale);
-    }
   };
 
   // Initialize scale refs when scale prop changes
@@ -852,7 +947,7 @@ export function PackModelMesh({
   // Rotate the model automatically using quaternions and handle click animation
   useFrame((state, delta) => {
     const targetRef = rotationCenter ? groupRef : meshRef;
-    const { camera } = state;
+    const { camera, pointer } = state;
 
     if (!targetRef.current) return;
 
@@ -933,7 +1028,38 @@ export function PackModelMesh({
             meshRef.current.scale.copy(targetScaleRef.current);
           }
         }
+        // Sync currentPositionRef and currentRotationRef with final values after reset
+        currentPositionRef.current.copy(targetPositionRef.current);
+        if (targetRotationRef.current) {
+          currentRotationRef.current.copy(targetRotationRef.current);
+        }
+        currentScaleRef.current.copy(targetScaleRef.current);
         setIsResetting(false);
+
+        // Check if card is being hovered over right when reset completes
+        if (hoverable && meshRef.current) {
+          // Create a raycaster from camera through pointer position
+          const raycasterInstance = new Raycaster();
+          raycasterInstance.setFromCamera(pointer, camera);
+
+          // Check if ray intersects with the mesh
+          const intersects = raycasterInstance.intersectObject(
+            meshRef.current,
+            true
+          );
+
+          if (intersects.length > 0) {
+            // Card is being hovered - trigger hover effect
+            setIsHovered(true);
+            const baseScale = Array.isArray(scale) ? scale[0] : scale;
+            targetScaleRef.current.set(
+              baseScale * 1.1,
+              baseScale * 1.1,
+              baseScale * 1.1
+            );
+          }
+        }
+
         // Call completion callback
         if (onResetComplete) {
           onResetComplete();
@@ -1060,9 +1186,93 @@ export function PackModelMesh({
           }
         }
         setIsAnimating(false);
+        setIsSelected(true); // Mark as selected after animation completes
+        setIsHovered(false); // Clear hover state when selected
+
+        // Call animation complete callback if provided
+        if (onAnimationComplete) {
+          onAnimationComplete();
+        }
       }
 
       return; // Skip autoRotate and bobbing during click animation
+    }
+
+    // Handle downward movement animation (second click)
+    if (isMovingDown) {
+      const lerpSpeed = 0.015; // Lower = slower downward movement, Higher = faster (default: 0.05)
+      const rotationSpeed = 360; // Degrees per second for rotation (slower)
+
+      // Interpolate position downwards
+      currentPositionRef.current.lerp(targetPositionRef.current, lerpSpeed);
+
+      // Accumulate rotation angle over time (to ensure full 360-degree rotation)
+      if (
+        startRotationQuatRef.current &&
+        accumulatedRotationAngleRef.current < 360
+      ) {
+        // Calculate how much to rotate this frame
+        const rotationDelta = rotationSpeed * delta;
+        accumulatedRotationAngleRef.current = Math.min(
+          accumulatedRotationAngleRef.current + rotationDelta,
+          360
+        );
+
+        // Create rotation quaternion for current accumulated angle
+        const currentRotationX = new Quaternion().setFromAxisAngle(
+          new Vector3(1, 0, 0),
+          mu.degToRad(accumulatedRotationAngleRef.current)
+        );
+
+        // Apply rotation: startRotation * currentRotationX
+        currentRotationRef.current
+          .copy(startRotationQuatRef.current)
+          .multiply(currentRotationX);
+      }
+
+      // Apply to the appropriate ref
+      if (rotationCenter) {
+        groupRef.current.position.copy(currentPositionRef.current);
+        if (startRotationQuatRef.current) {
+          groupRef.current.quaternion.copy(currentRotationRef.current);
+        }
+      } else {
+        if (meshRef.current) {
+          meshRef.current.position.copy(currentPositionRef.current);
+          if (startRotationQuatRef.current) {
+            meshRef.current.quaternion.copy(currentRotationRef.current);
+          }
+        }
+      }
+
+      // Check if downward animation is complete
+      const positionDiff = currentPositionRef.current.distanceTo(
+        targetPositionRef.current
+      );
+      const rotationComplete = accumulatedRotationAngleRef.current >= 360;
+
+      if (positionDiff < 0.01 && rotationComplete) {
+        // Downward animation complete - snap to exact position and rotation
+        if (rotationCenter) {
+          groupRef.current.position.copy(targetPositionRef.current);
+          if (targetRotationRef.current) {
+            groupRef.current.quaternion.copy(targetRotationRef.current);
+          }
+        } else {
+          if (meshRef.current) {
+            meshRef.current.position.copy(targetPositionRef.current);
+            if (targetRotationRef.current) {
+              meshRef.current.quaternion.copy(targetRotationRef.current);
+            }
+          }
+        }
+        setIsMovingDown(false);
+        // Reset rotation tracking
+        accumulatedRotationAngleRef.current = 0;
+        startRotationQuatRef.current = null;
+      }
+
+      return; // Skip autoRotate and bobbing during downward animation
     }
 
     // Bobbing animation logic (only when not animating)
@@ -1365,6 +1575,13 @@ export function PackModelMesh({
     });
   }, []);
 
+  // Notify parent when overlay should be shown/hidden
+  useEffect(() => {
+    if (onShowOverlay) {
+      onShowOverlay(show2DOverlay);
+    }
+  }, [show2DOverlay, onShowOverlay]);
+
   // If rotationCenter is specified, wrap in a Group to handle pivot point
   if (rotationCenter) {
     // Calculate relative position: object position - rotation center
@@ -1379,19 +1596,9 @@ export function PackModelMesh({
         ref={groupRef}
         position={rotationCenter}
         rotation={finalRotation}
-        onClick={
-          clickable && !isAnimating && !isResetting ? handleClick : undefined
-        }
-        onPointerEnter={
-          hoverable && !isAnimating && !isResetting
-            ? handlePointerEnter
-            : undefined
-        }
-        onPointerLeave={
-          hoverable && !isAnimating && !isResetting
-            ? handlePointerLeave
-            : undefined
-        }
+        onClick={clickable && !clicksDisabled ? handleClick : undefined}
+        onPointerEnter={hoverable ? handlePointerEnter : undefined}
+        onPointerLeave={hoverable ? handlePointerLeave : undefined}
       >
         <primitive
           ref={meshRef}
@@ -1411,19 +1618,9 @@ export function PackModelMesh({
       scale={scaleValue}
       position={position}
       rotation={finalRotation}
-      onClick={
-        clickable && !isAnimating && !isResetting ? handleClick : undefined
-      }
-      onPointerEnter={
-        hoverable && !isAnimating && !isResetting
-          ? handlePointerEnter
-          : undefined
-      }
-      onPointerLeave={
-        hoverable && !isAnimating && !isResetting
-          ? handlePointerLeave
-          : undefined
-      }
+      onClick={clickable && !clicksDisabled ? handleClick : undefined}
+      onPointerEnter={hoverable ? handlePointerEnter : undefined}
+      onPointerLeave={hoverable ? handlePointerLeave : undefined}
     />
   );
 }
@@ -1468,6 +1665,8 @@ interface PackModelProps {
   ) => void; // Callback to expose canvas data URL and dimensions
   hoverable?: boolean; // Enable/disable hover scale effect (default: true)
   clickable?: boolean; // Enable/disable click interaction (default: true)
+  cards?: CardType[]; // Cards to display in the overlay
+  onShowOverlay?: (show: boolean) => void; // Callback when overlay should be shown/hidden
 }
 
 export default function PackModel({
@@ -1499,11 +1698,16 @@ export default function PackModel({
   onCanvasReady,
   hoverable = true,
   clickable = true,
+  cards,
+  onShowOverlay,
 }: PackModelProps) {
   // Default model path - using cardpack2.glb from assets folder
   // You can override this by passing a custom modelPath prop
   // If no custom path is provided, use the imported model URL
   const defaultModelPath = modelPath || cardpackModelUrl;
+
+  // State to track 2D overlay visibility
+  const [show2DOverlay, setShow2DOverlay] = useState(false);
 
   // Component to enhance color vibrancy via tone mapping
   function ColorEnhancement() {
@@ -1514,39 +1718,66 @@ export default function PackModel({
     return null;
   }
 
+  // Component to handle WebGL context loss and restoration
+  function WebGLContextHandler() {
+    const { gl, scene } = useThree();
+
+    useEffect(() => {
+      const canvas = gl.domElement;
+
+      const handleContextLost = (event: Event) => {
+        event.preventDefault();
+        console.warn("WebGL context lost in PackModel");
+        // Dispose of resources to free memory
+        scene.traverse((object) => {
+          if (object instanceof Mesh) {
+            if (object.geometry) object.geometry.dispose();
+            if (object.material) {
+              const materials = Array.isArray(object.material)
+                ? object.material
+                : [object.material];
+              materials.forEach((mat) => {
+                if (mat instanceof StandardMaterial) {
+                  if (mat.map) mat.map.dispose();
+                  if (mat.normalMap) mat.normalMap.dispose();
+                }
+                mat.dispose();
+              });
+            }
+          }
+        });
+      };
+
+      const handleContextRestored = () => {
+        console.log("WebGL context restored in PackModel");
+        // Force a re-render by invalidating the renderer
+        gl.resetState();
+        // The scene will be recreated automatically by React Three Fiber
+      };
+
+      canvas.addEventListener("webglcontextlost", handleContextLost);
+      canvas.addEventListener("webglcontextrestored", handleContextRestored);
+
+      return () => {
+        canvas.removeEventListener("webglcontextlost", handleContextLost);
+        canvas.removeEventListener(
+          "webglcontextrestored",
+          handleContextRestored
+        );
+      };
+    }, [gl, scene]);
+
+    return null;
+  }
+
   return (
-    <div className={`w-full h-full ${className}`}>
+    <div className={`w-full h-full relative ${className}`}>
       <Canvas
         camera={{ position: cameraPosition, fov: cameraFov }}
         gl={{ antialias: true }}
-        onCreated={({ gl }) => {
-          // Handle WebGL context loss
-          const canvas = gl.domElement;
-          const handleContextLost = (event: Event) => {
-            event.preventDefault();
-            console.warn("WebGL context lost");
-          };
-          const handleContextRestored = () => {
-            // WebGL context restored
-            // Force re-render by updating the scene
-            gl.forceContextLoss();
-            gl.forceContextRestore();
-          };
-          canvas.addEventListener("webglcontextlost", handleContextLost);
-          canvas.addEventListener(
-            "webglcontextrestored",
-            handleContextRestored
-          );
-          return () => {
-            canvas.removeEventListener("webglcontextlost", handleContextLost);
-            canvas.removeEventListener(
-              "webglcontextrestored",
-              handleContextRestored
-            );
-          };
-        }}
       >
         <ColorEnhancement />
+        <WebGLContextHandler />
         {/* Lighting */}
         <ambientLight intensity={ambientLightIntensity} />
         <directionalLight
@@ -1580,6 +1811,13 @@ export default function PackModel({
             onCanvasReady={onCanvasReady}
             hoverable={hoverable}
             clickable={clickable}
+            onShowOverlay={(show) => {
+              setShow2DOverlay(show);
+              if (onShowOverlay) {
+                onShowOverlay(show);
+              }
+            }}
+            cards={cards}
           />
         </Suspense>
 
@@ -1595,6 +1833,12 @@ export default function PackModel({
           />
         )}
       </Canvas>
+      {/* 2D Overlay - rendered over the canvas */}
+      {show2DOverlay && cards && cards.length > 0 && (
+        <div className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center bg-black/80">
+          <CardDrawings cards={cards} />
+        </div>
+      )}
     </div>
   );
 }

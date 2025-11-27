@@ -19,7 +19,7 @@ const HomePage = () => {
         </div>
 
         {/* Previous Sets Section */}
-        <div className="mt-16 mb-8">
+        <div className="mt-16 mb-8 w-full">
           <h2 className="text-3xl font-semibold mb-6 text-gray-700">
             Previous Sets
           </h2>
