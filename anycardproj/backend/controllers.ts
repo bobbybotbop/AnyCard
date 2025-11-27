@@ -493,3 +493,26 @@ export async function openPack(
     throw err;
   }
 }
+
+export async function saveFavoritePack(userUid: string, card: Card) {
+  const userData = await getUserData(userUid);
+  if (!userData) {
+    throw new Error("User not found");
+  }
+  let updatedFavoriteCards;
+
+  if (userData.favoriteCards) {
+    updatedFavoriteCards = [...userData.favoriteCards, card];
+  } else {
+    updatedFavoriteCards = [card];
+  }
+
+  const data = { favoriteCards: updatedFavoriteCards };
+  const isSet = await setUserData(userUid, data);
+
+  if (!isSet) throw new Error("Failed to update user data");
+
+  return {
+    message: `Successfuly saved favorite card`,
+  };
+}

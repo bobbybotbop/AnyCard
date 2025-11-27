@@ -195,4 +195,20 @@ router.post("/api/openPack/:userUid", async (req, res) => {
   }
 });
 
+router.post("/api/saveFavoriteCard/:userUid", async (req, res) => {
+  const { userUid } = req.params;
+  const { card } = req.body;
+
+  if (!userUid || !card) {
+    return res.status(404).json({ error: "Invalid input" });
+  }
+
+  try {
+    const result = await controllers.saveFavoritePack(userUid, card);
+    return res.status(200).json(result);
+  } catch {
+    return res.status(500).json({ error: "Failed to successfuly save card" });
+  }
+});
+
 export default router;
