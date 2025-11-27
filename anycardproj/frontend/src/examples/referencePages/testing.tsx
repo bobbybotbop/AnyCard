@@ -5,7 +5,7 @@ import { cardSets } from "../../data/cards";
 export default function Home() {
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[90%] mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
           AnyCard Trading Card Game
         </h1>

@@ -1835,8 +1835,16 @@ export default function PackModel({
       </Canvas>
       {/* 2D Overlay - rendered over the canvas */}
       {show2DOverlay && cards && cards.length > 0 && (
-        <div className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center bg-black/80">
-          <CardDrawings cards={cards} />
+        <div className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center">
+          <CardDrawings
+            cards={cards}
+            onClose={() => {
+              setShow2DOverlay(false);
+              if (onShowOverlay) {
+                onShowOverlay(false);
+              }
+            }}
+          />
         </div>
       )}
     </div>

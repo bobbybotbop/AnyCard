@@ -4,7 +4,7 @@ import { cardSets } from "../data/cards";
 const Inventory = () => {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[90%] mx-auto">
         {cardSets.map((set) => (
           <div key={set.name} className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-700 capitalize">

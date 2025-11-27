@@ -4,6 +4,7 @@ import { Card as CardType } from "@full-stack/types";
 
 interface CardDrawingsProps {
   cards: CardType[];
+  onClose?: () => void;
 }
 
 const MAX_VISIBLE_CARDS = 4; // Show up to 4 cards in the stack
@@ -117,7 +118,7 @@ function ScalableCard({ card }: { card: CardType }) {
   );
 }
 
-export default function CardDrawings({ cards }: CardDrawingsProps) {
+export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -160,16 +161,40 @@ export default function CardDrawings({ cards }: CardDrawingsProps) {
   if (currentIndex >= cards.length) {
     const viewedCards = cards.slice(0, currentIndex);
     return (
-      <div className="grid grid-cols-5 auto-rows-[minmax(0,1fr)] gap-x-8 gap-y-10 justify-items-center items-start w-full">
-        {viewedCards.map((card, index) => (
-          <ScalableCard key={index} card={card} />
-        ))}
+      <div className="w-full h-full max-w-full max-h-full overflow-hidden flex flex-col relative">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-20 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            aria-label="Close"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+        <div className="grid grid-cols-5 auto-rows-[minmax(0,1fr)] gap-x-8 gap-y-10 justify-items-center items-start w-full flex-1 overflow-auto">
+          {viewedCards.map((card, index) => (
+            <ScalableCard key={index} card={card} />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex items-center justify-center w-full h-[400px]">
+    <div className="relative flex items-center justify-center w-full h-full max-w-full max-h-full overflow-hidden">
       {visibleCards.map(({ card, index, position }) => {
         const isTopCard = position === 0;
         const isExiting = isTopCard && isAnimating;

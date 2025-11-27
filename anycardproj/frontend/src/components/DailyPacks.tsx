@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { PackModelMesh } from "./packModel";
@@ -22,6 +22,10 @@ interface DailyPacksProps {
   enableRotate?: boolean;
   minDistance?: number;
   maxDistance?: number;
+  isLocked?: boolean; // When true, component should reset and prevent new selections
+  onSelectionStart?: () => void; // Called when a pack starts being selected
+  onSelectionEnd?: () => void; // Called when selection is reset/ended
+  resetRef?: React.MutableRefObject<(() => void) | null>; // Ref to expose reset function
 }
 
 export default function DailyPacks({
@@ -35,6 +39,10 @@ export default function DailyPacks({
   enableRotate = false,
   minDistance = 3,
   maxDistance = 10,
+  isLocked = false,
+  onSelectionStart,
+  onSelectionEnd,
+  resetRef,
 }: DailyPacksProps) {
   const [sets, setSets] = useState<Set[]>([]);
   const [clickedPackIndex, setClickedPackIndex] = useState<number | null>(null);
@@ -152,10 +160,13 @@ export default function DailyPacks({
     return null;
   }
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     // Store which pack needs to reset before clearing states
     const packIndexToReset =
-      selectedPackIndex ?? clickedPackIndex ?? openedPackIndex;
+      selectedPackIndex ??
+      animatingPackIndex ??
+      clickedPackIndex ??
+      openedPackIndex;
     // Immediately restore all packs (rerender other cards)
     setClickedPackIndex(null);
     setAnimatingPackIndex(null); // Clear animating state
@@ -185,7 +196,49 @@ export default function DailyPacks({
     setPackToReset(packIndexToReset);
     // Trigger reset animation for the clicked pack
     setResetTrigger((prev) => prev + 1);
-  };
+    // Notify parent that selection has ended
+    if (onSelectionEnd) {
+      onSelectionEnd();
+    }
+  }, [
+    selectedPackIndex,
+    animatingPackIndex,
+    clickedPackIndex,
+    openedPackIndex,
+    onSelectionEnd,
+  ]);
+
+  // Expose reset function via ref
+  useEffect(() => {
+    if (resetRef) {
+      resetRef.current = handleReset;
+    }
+    return () => {
+      if (resetRef) {
+        resetRef.current = null;
+      }
+    };
+  }, [resetRef, handleReset]);
+
+  // Reset when locked
+  useEffect(() => {
+    if (
+      isLocked &&
+      (selectedPackIndex !== null ||
+        clickedPackIndex !== null ||
+        openedPackIndex !== null ||
+        animatingPackIndex !== null)
+    ) {
+      handleReset();
+    }
+  }, [
+    isLocked,
+    selectedPackIndex,
+    clickedPackIndex,
+    openedPackIndex,
+    animatingPackIndex,
+    handleReset,
+  ]);
 
   const handleResetComplete = () => {
     // Reset animation completed - clear the pack to reset
@@ -199,6 +252,9 @@ export default function DailyPacks({
   };
 
   const handlePackClick = async (index: number) => {
+    // Don't allow clicks when locked
+    if (isLocked) return;
+
     const currentCount = packClickCounts.get(index) || 0;
     const newCount = currentCount + 1;
 
@@ -212,6 +268,10 @@ export default function DailyPacks({
       // First click: start animation
       setAnimatingPackIndex(index);
       setClickedPackIndex(index);
+      // Notify parent that selection has started
+      if (onSelectionStart) {
+        onSelectionStart();
+      }
     } else if (newCount === 2) {
       // Second click: open the pack
       const pack = sets[index];
@@ -259,35 +319,36 @@ export default function DailyPacks({
         return (
           <div
             key={`overlay-${index}`}
-            className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center bg-black/80"
+            className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center"
           >
-            <CardDrawings cards={cards} />
+            <CardDrawings cards={cards} onClose={handleReset} />
           </div>
         );
       })}
       {/* X button overlay - positioned on right side */}
-      {(clickedPackIndex !== null || openedPackIndex !== null) && (
-        <button
-          onClick={handleReset}
-          className="absolute right-5/16 mt-[10vh] z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
-          aria-label="Close"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-90"
+      {(clickedPackIndex !== null || openedPackIndex !== null) &&
+        !Array.from(overlayVisible.values()).some((visible) => visible) && (
+          <button
+            onClick={handleReset}
+            className="absolute right-5/16 mt-[10vh] z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            aria-label="Close"
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      )}
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
       <Canvas
         camera={{ position: cameraPosition, fov: cameraFov }}
         gl={{ antialias: true }}
@@ -330,6 +391,8 @@ export default function DailyPacks({
               bobbingSpeed={1.2}
               bobbingAmplitude={0.08}
               onClick={() => handlePackClick(0)}
+              clickable={!isLocked}
+              hoverable={!isLocked}
               originalPosition={packConfigs[0].position}
               originalRotation={packConfigs[0].rotation}
               resetTrigger={
@@ -378,6 +441,8 @@ export default function DailyPacks({
               bobbingSpeed={1.2}
               bobbingAmplitude={0.08}
               onClick={() => handlePackClick(1)}
+              clickable={!isLocked}
+              hoverable={!isLocked}
               originalPosition={packConfigs[1].position}
               originalRotation={packConfigs[1].rotation}
               resetTrigger={
@@ -426,6 +491,8 @@ export default function DailyPacks({
               bobbingSpeed={1.2}
               bobbingAmplitude={0.08}
               onClick={() => handlePackClick(2)}
+              clickable={!isLocked}
+              hoverable={!isLocked}
               originalPosition={packConfigs[2].position}
               originalRotation={packConfigs[2].rotation}
               resetTrigger={

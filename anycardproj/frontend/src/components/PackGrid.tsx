@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { PackModelMesh } from "./packModel";
@@ -11,6 +11,12 @@ import diffuseTextureUrl from "../assets/trading-card-pack/textures/DIFFUSE.png?
 import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORMAL.png?url";
 import cardpackModelUrl from "../assets/cardpack2.glb?url";
 
+// Pack grid layout constants
+const PACK_SCALE = 1;
+const PACK_SPACING = 2.5;
+const PACK_START_X = -(3 - 1) * PACK_SPACING * 0.54;
+const ROW_HEIGHT = "70vh";
+
 interface PackGridProps {
   className?: string;
   cameraPosition?: [number, number, number];
@@ -22,6 +28,10 @@ interface PackGridProps {
   enableRotate?: boolean;
   minDistance?: number;
   maxDistance?: number;
+  isLocked?: boolean; // When true, component should reset and prevent new selections
+  onSelectionStart?: () => void; // Called when a pack starts being selected
+  onSelectionEnd?: () => void; // Called when selection is reset/ended
+  resetRef?: React.MutableRefObject<(() => void) | null>; // Ref to expose reset function
 }
 
 const PackGrid = ({
@@ -35,6 +45,10 @@ const PackGrid = ({
   enableRotate = false,
   minDistance = 3,
   maxDistance = 10,
+  isLocked = false,
+  onSelectionStart,
+  onSelectionEnd,
+  resetRef,
 }: PackGridProps) => {
   const [sets, setSets] = useState<Set[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,10 +164,11 @@ const PackGrid = ({
     return null;
   }
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     // Store which pack needs to reset before clearing states
-    // Use selectedPackIndex if available, otherwise use clickedPackIndex
-    const packIndexToReset = selectedPackIndex ?? clickedPackIndex;
+    // Use selectedPackIndex if available, otherwise use animatingPackIndex or clickedPackIndex
+    const packIndexToReset =
+      selectedPackIndex ?? animatingPackIndex ?? clickedPackIndex;
     // Immediately restore all packs (rerender other cards)
     setClickedPackIndex(null);
     setAnimatingPackIndex(null); // Clear animating state
@@ -182,7 +197,41 @@ const PackGrid = ({
     setPackToReset(packIndexToReset);
     // Trigger reset animation for the clicked pack
     setResetTrigger((prev) => prev + 1);
-  };
+    // Notify parent that selection has ended
+    if (onSelectionEnd) {
+      onSelectionEnd();
+    }
+  }, [selectedPackIndex, animatingPackIndex, clickedPackIndex, onSelectionEnd]);
+
+  // Expose reset function via ref
+  useEffect(() => {
+    if (resetRef) {
+      resetRef.current = handleReset;
+    }
+    return () => {
+      if (resetRef) {
+        resetRef.current = null;
+      }
+    };
+  }, [resetRef, handleReset]);
+
+  // Reset when locked
+  useEffect(() => {
+    if (
+      isLocked &&
+      (selectedPackIndex !== null ||
+        clickedPackIndex !== null ||
+        animatingPackIndex !== null)
+    ) {
+      handleReset();
+    }
+  }, [
+    isLocked,
+    selectedPackIndex,
+    clickedPackIndex,
+    animatingPackIndex,
+    handleReset,
+  ]);
 
   const handleResetComplete = () => {
     // Reset animation completed - clear the pack to reset
@@ -196,6 +245,9 @@ const PackGrid = ({
   };
 
   const handlePackClick = async (index: number) => {
+    // Don't allow clicks when locked
+    if (isLocked) return;
+
     const currentCount = packClickCounts.get(index) || 0;
     const newCount = currentCount + 1;
 
@@ -208,6 +260,10 @@ const PackGrid = ({
     if (newCount === 1) {
       // First click: start animation (don't switch to detail view yet)
       setAnimatingPackIndex(index);
+      // Notify parent that selection has started
+      if (onSelectionStart) {
+        onSelectionStart();
+      }
     } else if (newCount === 2) {
       // Second click: open the pack
       const pack = sets[index];
@@ -250,9 +306,7 @@ const PackGrid = ({
 
   // Calculate position for a pack within a row (3 packs left to right)
   const getRowPosition = (colIndex: number): [number, number, number] => {
-    const spacing = 2.5;
-    const startX = -(3 - 1) * spacing * 0.5;
-    return [startX + colIndex * spacing, 0, 1.5];
+    return [PACK_START_X + colIndex * PACK_SPACING, 0, 1.5];
   };
 
   if (isLoading) {
@@ -265,35 +319,40 @@ const PackGrid = ({
 
   // Grid view - separate canvas for each row
   return (
-    <div className={`max-w-[90vw] mx-auto ${className} relative`}>
+    <div className={`w-[90vw] mx-auto ${className} relative`}>
       {/* X button overlay - positioned on right side, shown when pack is selected */}
-      {selectedPackIndex !== null && (
-        <button
-          onClick={handleReset}
-          className="absolute right-5/16 mt-[10vh] z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
-          aria-label="Close"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-90"
+      {selectedPackIndex !== null &&
+        !Array.from(overlayVisible.values()).some((visible) => visible) && (
+          <button
+            onClick={handleReset}
+            className="absolute right-5/16 mt-[10vh] z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            aria-label="Close"
           >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      )}
-      <div className="flex flex-col gap-8">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      <div className="flex flex-col gap-8 h-auto">
         {rows.map((rowSets, rowIndex) => {
           const startIndex = rowIndex * 3;
           return (
-            <div key={`row-${rowIndex}`} className="w-full h-[60vh] relative">
+            <div
+              key={`row-${rowIndex}`}
+              className="w-full relative"
+              style={{ height: ROW_HEIGHT }}
+            >
               {/* 2D Overlay - shown when pack in this row is opened */}
               {rowSets.map((set, colIndex) => {
                 const globalIndex = startIndex + colIndex;
@@ -303,9 +362,9 @@ const PackGrid = ({
                 return (
                   <div
                     key={`overlay-${globalIndex}`}
-                    className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center bg-black/80"
+                    className="absolute inset-0 pointer-events-auto z-10 flex items-center justify-center"
                   >
-                    <CardDrawings cards={cards} />
+                    <CardDrawings cards={cards} onClose={handleReset} />
                   </div>
                 );
               })}
@@ -352,7 +411,7 @@ const PackGrid = ({
                         modelPath={cardpackModelUrl}
                         diffuseTexture={diffuseTextureUrl}
                         normalTexture={normalTextureUrl}
-                        scale={1}
+                        scale={PACK_SCALE}
                         position={originalPosition}
                         rotation={originalRotation}
                         autoRotate={false}
@@ -386,8 +445,8 @@ const PackGrid = ({
                             : undefined
                         }
                         isSelected={isSelected}
-                        hoverable={true}
-                        clickable={true}
+                        hoverable={!isLocked}
+                        clickable={!isLocked}
                         cards={openedCards.get(globalIndex)}
                         onShowOverlay={(show) => {
                           setOverlayVisible((prev) => {
