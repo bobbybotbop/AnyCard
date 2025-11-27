@@ -157,23 +157,35 @@ router.get("/api/getDailyPacks", async (req, res) => {
   }
 });
 
-router.post("/api/openDailyPack/:userUid", async (req, res) => {
-  const { userUid } = req.params;
-  const { dailyPackId } = req.body || {};
+router.get("/api/getAllSets", async (req, res) => {
+  try {
+    const result = await controllers.getAllSets();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in getAllSets", error);
+    res.status(500).json({ error: "Failed to get all sets" });
+  }
+});
 
-  if (!dailyPackId || typeof dailyPackId !== "string") {
-    return res.status(400).json({ error: "dailyPackId required" });
+router.post("/api/openPack/:userUid", async (req, res) => {
+  const { userUid } = req.params;
+  const { packId, collection } = req.body || {};
+
+  if (!packId || typeof packId !== "string") {
+    return res.status(400).json({ error: "packId required" });
   }
 
   if (!userUid || typeof userUid !== "string") {
     return res.status(400).json({ error: "userUid required" });
   }
 
+  const collectionName = collection || "dailyPacks";
+
   try {
-    const result = await controllers.openDailyPack(userUid, dailyPackId);
+    const result = await controllers.openPack(userUid, packId, collectionName);
     return res.status(200).json(result);
   } catch (err: any) {
-    console.error("openDailyPack failed:", err);
+    console.error("openPack failed:", err);
     if (err.message === "Pack not found") {
       return res.status(404).json({ error: err.message });
     }

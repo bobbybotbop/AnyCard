@@ -19,10 +19,7 @@ const WikipediaTestButton: React.FC = () => {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const result = await searchWikipedia(query);
-      console.log("Wikipedia Search Result:", result);
-      console.log("Title:", result.title);
-      console.log("Image URL:", result.imageUrl);
+      await searchWikipedia(query);
     } catch (error) {
       console.error("Error searching Wikipedia:", error);
     } finally {
@@ -33,11 +30,7 @@ const WikipediaTestButton: React.FC = () => {
   const handleOpenRouter = async () => {
     setOpenRouterLoading(true);
     try {
-      const result = await callOpenRouter(openRouterInput);
-      console.log("OpenRouter Response:", result);
-      if (result.choices && result.choices.length > 0) {
-        console.log("AI Response:", result.choices[0].message?.content);
-      }
+      await callOpenRouter(openRouterInput);
     } catch (error) {
       console.error("Error calling OpenRouter:", error);
     } finally {
@@ -48,8 +41,7 @@ const WikipediaTestButton: React.FC = () => {
   const handleCreateRandomSet = async () => {
     setRandomSetLoading(true);
     try {
-      const result = await createRandomSet();
-      console.log("Random Set Created:", result);
+      await createRandomSet();
     } catch (error) {
       console.error("Error creating random set:", error);
     } finally {
@@ -60,12 +52,7 @@ const WikipediaTestButton: React.FC = () => {
   const handleCreateDailyPacks = async () => {
     setDailyPacksLoading(true);
     try {
-      const result = await createDailyPacks();
-      console.log("Daily Packs Created:", result);
-      console.log(
-        `Created ${result.length} sets:`,
-        result.map((set: any) => set.theme)
-      );
+      await createDailyPacks();
     } catch (error) {
       console.error("Error creating daily packs:", error);
     } finally {

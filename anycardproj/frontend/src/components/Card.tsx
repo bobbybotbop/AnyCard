@@ -40,16 +40,8 @@ export default function Card({ card }: CardProps) {
       const font = `${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
       const textWidth = measureTextWidth(card.name, font);
 
-      console.log(
-        `Available width: ${availableWidth}, Text width: ${textWidth}`
-      );
-
       const hasOverflow = textWidth > availableWidth;
       setTitleOverflowing(hasOverflow);
-
-      if (hasOverflow) {
-        console.log(card.name + " has overflow");
-      }
     }
   }, [card.name]);
   return (
