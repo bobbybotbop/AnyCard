@@ -28,7 +28,6 @@ const Profile = () => {
     const fetch = async () => {
       if (!user?.uid) {
         setLoading(false);
-        console.log("user has not logged in");
         return;
       }
       try {

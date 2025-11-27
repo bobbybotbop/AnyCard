@@ -6,3 +6,5 @@ anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
 anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
 *.log
 /anycardproj/backend/%localappdata%
+anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.log
+anycardproj/backend/%localappdata%/Malwarebytes/Logs/MBAMSI.alt1.log

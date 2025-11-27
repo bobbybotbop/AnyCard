@@ -120,6 +120,30 @@ export default function DailyPacks({
       <Canvas
         camera={{ position: cameraPosition, fov: cameraFov }}
         gl={{ antialias: true }}
+        style={{ cursor: "pointer" }}
+        onCreated={({ gl }) => {
+          // Handle WebGL context loss
+          const canvas = gl.domElement;
+          const handleContextLost = (event: Event) => {
+            event.preventDefault();
+            console.warn("WebGL context lost");
+          };
+          const handleContextRestored = () => {
+            // WebGL context restored
+          };
+          canvas.addEventListener("webglcontextlost", handleContextLost);
+          canvas.addEventListener(
+            "webglcontextrestored",
+            handleContextRestored
+          );
+          return () => {
+            canvas.removeEventListener("webglcontextlost", handleContextLost);
+            canvas.removeEventListener(
+              "webglcontextrestored",
+              handleContextRestored
+            );
+          };
+        }}
       >
         <ColorEnhancement />
         {/* Shared lighting for all objects */}

@@ -298,18 +298,6 @@ async function compositeTextures(
         const drawWidth = targetWidth;
         const drawHeight = targetHeight;
 
-        // Debug logging
-        console.log("Drawing overlay:", {
-          drawX,
-          drawY,
-          drawWidth,
-          drawHeight,
-          overlayImageWidth: overlayImage.width,
-          overlayImageHeight: overlayImage.height,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height,
-        });
-
         // Analyze overlay image colors before drawing (if setTitle is provided)
         let dominantColor: [number, number, number] | null = null;
         let outlineColor: "white" | "black" = "black";
@@ -496,13 +484,6 @@ async function compositeTextures(
         // CanvasTexture stores the canvas in its image property, but we keep an extra reference
         (texture as any)._canvas = canvas;
 
-        console.log("Canvas texture created successfully", {
-          textureType: texture.constructor.name,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height,
-          hasImage: !!(texture as any).image,
-        });
-
         resolve({
           texture,
           canvasDataUrl,
@@ -515,10 +496,6 @@ async function compositeTextures(
 
     baseImage.onload = () => {
       baseLoaded = true;
-      console.log("Base image loaded:", {
-        width: baseImage.width,
-        height: baseImage.height,
-      });
       checkAndComposite();
     };
     baseImage.onerror = (error) => {
@@ -528,11 +505,6 @@ async function compositeTextures(
 
     overlayImage.onload = () => {
       overlayLoaded = true;
-      console.log("Overlay image loaded:", {
-        width: overlayImage.width,
-        height: overlayImage.height,
-        src: overlayImage.src,
-      });
       checkAndComposite();
     };
     overlayImage.onerror = (error) => {
@@ -575,6 +547,8 @@ export function PackModelMesh({
   originalRotation,
   resetTrigger,
   onResetComplete,
+  hoverable = true,
+  clickable = true,
 }: {
   modelPath: string;
   diffuseTexture: string;
@@ -606,6 +580,8 @@ export function PackModelMesh({
   originalRotation?: [number, number, number]; // Original rotation to reset to
   resetTrigger?: number; // Trigger reset when this value changes
   onResetComplete?: () => void; // Callback when reset animation completes
+  hoverable?: boolean; // Enable/disable hover scale effect (default: true)
+  clickable?: boolean; // Enable/disable click interaction (default: true)
 }) {
   const { scene: originalScene } = useGLTF(modelPath);
   const meshRef = useRef<Mesh>(null);
@@ -628,6 +604,15 @@ export function PackModelMesh({
   // Bobbing animation state
   const baseYPositionRef = useRef<number | null>(null);
   const wasBobbingRef = useRef<boolean>(false);
+
+  // Hover state for scale animation
+  const [isHovered, setIsHovered] = useState(false);
+  const currentScaleRef = useRef<Vector3>(
+    new Vector3(...(Array.isArray(scale) ? scale : [scale, scale, scale]))
+  );
+  const targetScaleRef = useRef<Vector3>(
+    new Vector3(...(Array.isArray(scale) ? scale : [scale, scale, scale]))
+  );
 
   // Clone the scene for each instance so multiple models can be rendered independently
   // Without cloning, all instances would share the same Three.js object and appear at the same position
@@ -746,6 +731,11 @@ export function PackModelMesh({
       setIsResetting(true);
       setIsAnimating(false); // Stop any ongoing click animation
 
+      // Reset hover state and scale
+      setIsHovered(false);
+      const baseScale = Array.isArray(scale) ? scale[0] : scale;
+      targetScaleRef.current.set(baseScale, baseScale, baseScale);
+
       // Set target to original position
       if (originalPosition) {
         targetPositionRef.current.set(...originalPosition);
@@ -758,11 +748,15 @@ export function PackModelMesh({
         targetRotationRef.current = originalRotationQuatRef.current.clone();
       }
 
-      // Store current position and rotation for smooth interpolation
+      // Store current position, rotation, and scale for smooth interpolation
       const targetRef = rotationCenter ? groupRef : meshRef;
       if (targetRef.current) {
         currentPositionRef.current.copy(targetRef.current.position);
         currentRotationRef.current.copy(targetRef.current.quaternion);
+      }
+      // Store current scale
+      if (meshRef.current) {
+        currentScaleRef.current.copy(meshRef.current.scale);
       }
     }
   }, [
@@ -772,13 +766,42 @@ export function PackModelMesh({
     originalPosition,
     position,
     rotationCenter,
+    scale,
   ]);
+
+  // Handle hover enter
+  const handlePointerEnter = (event: any) => {
+    event.stopPropagation();
+    if (!hoverable || isAnimating || isResetting) return; // Don't hover if disabled or during animation or reset
+    setIsHovered(true);
+    // Set target scale to 1.10x (10% larger)
+    const baseScale = Array.isArray(scale) ? scale[0] : scale;
+    targetScaleRef.current.set(
+      baseScale * 1.1,
+      baseScale * 1.1,
+      baseScale * 1.1
+    );
+  };
+
+  // Handle hover leave
+  const handlePointerLeave = (event: any) => {
+    event.stopPropagation();
+    if (!hoverable || isAnimating || isResetting) return; // Don't process hover leave if disabled or during animation or reset
+    setIsHovered(false);
+    // Reset scale to original
+    const baseScale = Array.isArray(scale) ? scale[0] : scale;
+    targetScaleRef.current.set(baseScale, baseScale, baseScale);
+  };
 
   // Handle click to animate to center and face camera
   const handleClick = (event: any) => {
     event.stopPropagation();
 
+    if (!clickable) return; // Don't process clicks if clickable is disabled
     if (isAnimating || isResetting) return; // Prevent clicks during animation or reset
+
+    // Reset hover state when clicking
+    setIsHovered(false);
 
     // Call onClick callback if provided
     if (onClick) {
@@ -793,13 +816,38 @@ export function PackModelMesh({
     // Select pack screen position - where the card moves to the center of the screen
     targetPositionRef.current.set(0, 0.4, 1.7);
 
-    // Store current position and rotation for smooth interpolation
+    // Set target scale for animation (scale up to 1.5x when clicked)
+    const baseScale = Array.isArray(scale) ? scale[0] : scale;
+    targetScaleRef.current.set(
+      baseScale * 1.5,
+      baseScale * 1.5,
+      baseScale * 1.5
+    );
+
+    // Store current position, rotation, and scale for smooth interpolation
     const targetRef = rotationCenter ? groupRef : meshRef;
     if (!targetRef.current) return;
 
     currentPositionRef.current.copy(targetRef.current.position);
     currentRotationRef.current.copy(targetRef.current.quaternion);
+
+    // Store current scale
+    if (meshRef.current) {
+      currentScaleRef.current.copy(meshRef.current.scale);
+    }
   };
+
+  // Initialize scale refs when scale prop changes
+  useEffect(() => {
+    const scaleArray: [number, number, number] = Array.isArray(scale)
+      ? [scale[0], scale[1] ?? scale[0], scale[2] ?? scale[0]]
+      : [scale, scale, scale];
+    currentScaleRef.current.set(scaleArray[0], scaleArray[1], scaleArray[2]);
+    // Only update target scale if not hovered (preserve hover scale)
+    if (!isHovered) {
+      targetScaleRef.current.set(scaleArray[0], scaleArray[1], scaleArray[2]);
+    }
+  }, [scale, isHovered]);
 
   // Rotate the model automatically using quaternions and handle click animation
   useFrame((state, delta) => {
@@ -807,6 +855,23 @@ export function PackModelMesh({
     const { camera } = state;
 
     if (!targetRef.current) return;
+
+    // Handle scale animation on hover
+    if (!isAnimating && !isResetting) {
+      const lerpSpeed = 0.1; // Smooth scale transition
+      currentScaleRef.current.lerp(targetScaleRef.current, lerpSpeed);
+
+      // Apply scale to the appropriate ref
+      if (rotationCenter) {
+        if (meshRef.current) {
+          meshRef.current.scale.copy(currentScaleRef.current);
+        }
+      } else {
+        if (meshRef.current) {
+          meshRef.current.scale.copy(currentScaleRef.current);
+        }
+      }
+    }
 
     // Handle reset animation
     if (isResetting) {
@@ -820,14 +885,21 @@ export function PackModelMesh({
         currentRotationRef.current.slerp(targetRotationRef.current, lerpSpeed);
       }
 
+      // Interpolate scale back to original
+      currentScaleRef.current.lerp(targetScaleRef.current, lerpSpeed);
+
       // Apply to the appropriate ref
       if (rotationCenter) {
         groupRef.current.position.copy(currentPositionRef.current);
         groupRef.current.quaternion.copy(currentRotationRef.current);
+        if (meshRef.current) {
+          meshRef.current.scale.copy(currentScaleRef.current);
+        }
       } else {
         if (meshRef.current) {
           meshRef.current.position.copy(currentPositionRef.current);
           meshRef.current.quaternion.copy(currentRotationRef.current);
+          meshRef.current.scale.copy(currentScaleRef.current);
         }
       }
 
@@ -838,13 +910,19 @@ export function PackModelMesh({
       const rotationDiff = targetRotationRef.current
         ? currentRotationRef.current.angleTo(targetRotationRef.current)
         : 0;
+      const scaleDiff = currentScaleRef.current.distanceTo(
+        targetScaleRef.current
+      );
 
-      if (positionDiff < 0.01 && rotationDiff < 0.01) {
-        // Reset complete - snap to exact position/rotation
+      if (positionDiff < 0.01 && rotationDiff < 0.01 && scaleDiff < 0.01) {
+        // Reset complete - snap to exact position/rotation/scale
         if (rotationCenter) {
           groupRef.current.position.copy(targetPositionRef.current);
           if (targetRotationRef.current) {
             groupRef.current.quaternion.copy(targetRotationRef.current);
+          }
+          if (meshRef.current) {
+            meshRef.current.scale.copy(targetScaleRef.current);
           }
         } else {
           if (meshRef.current) {
@@ -852,6 +930,7 @@ export function PackModelMesh({
             if (targetRotationRef.current) {
               meshRef.current.quaternion.copy(targetRotationRef.current);
             }
+            meshRef.current.scale.copy(targetScaleRef.current);
           }
         }
         setIsResetting(false);
@@ -930,16 +1009,23 @@ export function PackModelMesh({
         currentRotationRef.current.slerp(targetRotationRef.current, lerpSpeed);
       }
 
+      // Interpolate scale
+      currentScaleRef.current.lerp(targetScaleRef.current, lerpSpeed);
+
       // Apply to the appropriate ref
       if (rotationCenter) {
         // For rotationCenter, animate the group position
         groupRef.current.position.copy(currentPositionRef.current);
         groupRef.current.quaternion.copy(currentRotationRef.current);
+        if (meshRef.current) {
+          meshRef.current.scale.copy(currentScaleRef.current);
+        }
       } else {
-        // For normal case, animate the mesh position and rotation
+        // For normal case, animate the mesh position, rotation, and scale
         if (meshRef.current) {
           meshRef.current.position.copy(currentPositionRef.current);
           meshRef.current.quaternion.copy(currentRotationRef.current);
+          meshRef.current.scale.copy(currentScaleRef.current);
         }
       }
 
@@ -950,13 +1036,19 @@ export function PackModelMesh({
       const rotationDiff = targetRotationRef.current
         ? currentRotationRef.current.angleTo(targetRotationRef.current)
         : 0;
+      const scaleDiff = currentScaleRef.current.distanceTo(
+        targetScaleRef.current
+      );
 
-      if (positionDiff < 0.01 && rotationDiff < 0.01) {
+      if (positionDiff < 0.01 && rotationDiff < 0.01 && scaleDiff < 0.01) {
         // Animation complete
         if (rotationCenter) {
           groupRef.current.position.copy(targetPositionRef.current);
           if (targetRotationRef.current) {
             groupRef.current.quaternion.copy(targetRotationRef.current);
+          }
+          if (meshRef.current) {
+            meshRef.current.scale.copy(targetScaleRef.current);
           }
         } else {
           if (meshRef.current) {
@@ -964,6 +1056,7 @@ export function PackModelMesh({
             if (targetRotationRef.current) {
               meshRef.current.quaternion.copy(targetRotationRef.current);
             }
+            meshRef.current.scale.copy(targetScaleRef.current);
           }
         }
         setIsAnimating(false);
@@ -1183,9 +1276,7 @@ export function PackModelMesh({
                     }
 
                     normalTex.flipY = false;
-                    console.log("Applying composited texture to material");
                     applyTexture(compositedTex, normalTex);
-                    console.log("Texture applied successfully");
                   });
                 }
               )
@@ -1208,13 +1299,46 @@ export function PackModelMesh({
       }
     });
 
-    // Cleanup function to dispose textures
+    // Cleanup function to dispose textures and canvases
     return () => {
       isMountedRef.current = false;
       texturesRef.current.forEach((texture) => {
-        texture.dispose();
+        if (texture) {
+          texture.dispose();
+        }
       });
       texturesRef.current = [];
+
+      // Cleanup canvas references
+      canvasRef.current.forEach((canvas) => {
+        if (canvas) {
+          // Clear canvas to free memory
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+        }
+      });
+      canvasRef.current = [];
+
+      // Dispose of materials
+      scene.traverse((child) => {
+        if (child instanceof Mesh && child.material) {
+          const materials = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+          materials.forEach((mat) => {
+            if (mat instanceof StandardMaterial) {
+              if (mat.map) mat.map.dispose();
+              if (mat.normalMap) mat.normalMap.dispose();
+            }
+            mat.dispose();
+          });
+        }
+        if (child instanceof Mesh) {
+          child.geometry.dispose();
+        }
+      });
     };
   }, [
     scene,
@@ -1255,7 +1379,19 @@ export function PackModelMesh({
         ref={groupRef}
         position={rotationCenter}
         rotation={finalRotation}
-        onClick={handleClick}
+        onClick={
+          clickable && !isAnimating && !isResetting ? handleClick : undefined
+        }
+        onPointerEnter={
+          hoverable && !isAnimating && !isResetting
+            ? handlePointerEnter
+            : undefined
+        }
+        onPointerLeave={
+          hoverable && !isAnimating && !isResetting
+            ? handlePointerLeave
+            : undefined
+        }
       >
         <primitive
           ref={meshRef}
@@ -1275,7 +1411,19 @@ export function PackModelMesh({
       scale={scaleValue}
       position={position}
       rotation={finalRotation}
-      onClick={handleClick}
+      onClick={
+        clickable && !isAnimating && !isResetting ? handleClick : undefined
+      }
+      onPointerEnter={
+        hoverable && !isAnimating && !isResetting
+          ? handlePointerEnter
+          : undefined
+      }
+      onPointerLeave={
+        hoverable && !isAnimating && !isResetting
+          ? handlePointerLeave
+          : undefined
+      }
     />
   );
 }
@@ -1318,6 +1466,8 @@ interface PackModelProps {
     canvasWidth: number,
     canvasHeight: number
   ) => void; // Callback to expose canvas data URL and dimensions
+  hoverable?: boolean; // Enable/disable hover scale effect (default: true)
+  clickable?: boolean; // Enable/disable click interaction (default: true)
 }
 
 export default function PackModel({
@@ -1347,6 +1497,8 @@ export default function PackModel({
   overlayHeight = 1,
   setTitle,
   onCanvasReady,
+  hoverable = true,
+  clickable = true,
 }: PackModelProps) {
   // Default model path - using cardpack2.glb from assets folder
   // You can override this by passing a custom modelPath prop
@@ -1367,6 +1519,32 @@ export default function PackModel({
       <Canvas
         camera={{ position: cameraPosition, fov: cameraFov }}
         gl={{ antialias: true }}
+        onCreated={({ gl }) => {
+          // Handle WebGL context loss
+          const canvas = gl.domElement;
+          const handleContextLost = (event: Event) => {
+            event.preventDefault();
+            console.warn("WebGL context lost");
+          };
+          const handleContextRestored = () => {
+            // WebGL context restored
+            // Force re-render by updating the scene
+            gl.forceContextLoss();
+            gl.forceContextRestore();
+          };
+          canvas.addEventListener("webglcontextlost", handleContextLost);
+          canvas.addEventListener(
+            "webglcontextrestored",
+            handleContextRestored
+          );
+          return () => {
+            canvas.removeEventListener("webglcontextlost", handleContextLost);
+            canvas.removeEventListener(
+              "webglcontextrestored",
+              handleContextRestored
+            );
+          };
+        }}
       >
         <ColorEnhancement />
         {/* Lighting */}
@@ -1400,6 +1578,8 @@ export default function PackModel({
             overlayHeight={overlayHeight}
             setTitle={setTitle}
             onCanvasReady={onCanvasReady}
+            hoverable={hoverable}
+            clickable={clickable}
           />
         </Suspense>
 

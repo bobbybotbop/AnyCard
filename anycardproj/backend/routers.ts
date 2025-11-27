@@ -157,6 +157,16 @@ router.get("/api/getDailyPacks", async (req, res) => {
   }
 });
 
+router.get("/api/getAllSets", async (req, res) => {
+  try {
+    const result = await controllers.getAllSets();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in getAllSets", error);
+    res.status(500).json({ error: "Failed to get all sets" });
+  }
+});
+
 router.post("/api/openDailyPack/:userUid", async (req, res) => {
   const { userUid } = req.params;
   const { dailyPackId } = req.body || {};

@@ -156,3 +156,16 @@ export const getDailyPacks = async (): Promise<Set[]> => {
 
   return response.json();
 };
+
+export const getAllSets = async (): Promise<Set[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllSets`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get all sets");
+  }
+
+  return response.json();
+};

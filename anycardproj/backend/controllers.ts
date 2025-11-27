@@ -422,6 +422,22 @@ export async function getDailyPacks(): Promise<Set[]> {
   }
 }
 
+export async function getAllSets(): Promise<Set[]> {
+  try {
+    const snapshot = await db.collection("cards").get();
+    const sets: Set[] = [];
+
+    snapshot.forEach((doc: any) => {
+      const data = doc.data();
+      sets.push(data as Set);
+    });
+
+    return sets;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function openDailyPack(
   userUid: string,
   dailyPackId: string

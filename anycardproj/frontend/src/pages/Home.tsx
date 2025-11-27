@@ -1,5 +1,6 @@
 import DailyPacks from "../components/DailyPacks";
-import PackModel from "../components/packModel";
+import PackGrid from "../components/PackGrid";
+// import Carousel from "../components/Carousel";
 
 const HomePage = () => {
   return (
@@ -17,28 +18,16 @@ const HomePage = () => {
           <DailyPacks />
         </div>
 
-        <div className="h-150">
-          <PackModel
-            overlayImageUrl="https://bogleech.com/pokemon/allpokes/102Exeggcute.png"
-            rotation={[0, 0, 90]}
-            autoRotate={true}
-            rotationAxis="x"
-            setTitle="The Coolest Eggs"
-            // onCanvasReady={handleCanvasReady}
-          ></PackModel>
+        {/* Previous Sets Section */}
+        <div className="mt-16 mb-8">
+          <h2 className="text-3xl font-semibold mb-6 text-gray-700">
+            Previous Sets
+          </h2>
+          <PackGrid />
         </div>
 
-        {/* Sets Section */}
-        {/* <div className="mb-12">
-          <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
-            Card Sets
-          </h2>
-          <div className="flex flex-wrap justify-center gap-6">
-            {cardSets.map((set) => (
-              <Set key={set.name} set={set} />
-            ))}
-          </div>
-        </div> */}
+        {/* Infinite scrolling PackModels */}
+        {/* <Carousel /> */}
       </div>
     </main>
   );
