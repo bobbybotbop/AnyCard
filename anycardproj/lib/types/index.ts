@@ -29,6 +29,11 @@ export interface Card {
   rarity: Rarity;
   attacks: [Attack, Attack];
   fromPack: string;
+  /**
+   * Optional color identifier for the card (e.g. "red", "blue").
+   * Used for UI features like sorting by color in the inventory.
+   */
+  color?: string;
 }
 
 export interface Set {

@@ -1,16 +1,39 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card as CardType } from "../data/cards";
+import "./Card.css";
 
 interface CardProps {
   card: CardType;
+  enableTilt?: boolean;
+  isExiting?: boolean;
+  holographic?: boolean;
+  onClick?: () => void;
+  isExpanded?: boolean;
+  onClose?: () => void;
 }
 
-export default function Card({ card }: CardProps) {
+export default function Card({
+  card,
+  enableTilt = false,
+  isExiting = false,
+  holographic,
+  onClick,
+  isExpanded = false,
+  onClose,
+}: CardProps) {
   const [imageError, setImageError] = useState(false);
   const [titleOverflowing, setTitleOverflowing] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>("#fef9e7"); // Default yellow-50
   const [secondaryColor, setSecondaryColor] = useState<string>("#facc15"); // Default yellow-400
   const imageRef = useRef<HTMLImageElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const holoRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  // Automatically enable holographic effect for mythic rarity cards
+  // unless explicitly set to false
+  const isHolographic =
+    holographic !== undefined ? holographic : card.rarity === "mythic";
 
   const rarityColors: Record<string, string> = {
     common: "bg-gray-200 text-gray-700",
@@ -322,18 +345,140 @@ export default function Card({ card }: CardProps) {
     extractColorsFromImage(currentImageSrc);
   }, [card.picture, imageError]);
 
+  // Holographic mouse tracking handler
+  const handleHoloMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!holoRef.current || isExiting || !isHolographic) return;
+
+    const rect = holoRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    const mouseX = clientX - centerX;
+    const mouseY = clientY - centerY;
+
+    // Calculate pointer position as percentage
+    const pointerX = ((clientX - rect.left) / rect.width) * 100;
+    const pointerY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Calculate distance from center (0 to 1)
+    const distanceFromCenter = Math.sqrt(
+      Math.pow(mouseX / (rect.width / 2), 2) +
+        Math.pow(mouseY / (rect.height / 2), 2)
+    );
+    const normalizedDistance = Math.min(distanceFromCenter, 1);
+
+    // Calculate normalized position (0 to 1)
+    const fromLeft = (clientX - rect.left) / rect.width;
+    const fromTop = (clientY - rect.top) / rect.height;
+
+    // Update CSS custom properties
+    if (holoRef.current) {
+      holoRef.current.style.setProperty("--holo-pointer-x", `${pointerX}%`);
+      holoRef.current.style.setProperty("--holo-pointer-y", `${pointerY}%`);
+      holoRef.current.style.setProperty(
+        "--holo-pointer-from-center",
+        String(normalizedDistance)
+      );
+      holoRef.current.style.setProperty(
+        "--holo-pointer-from-top",
+        String(fromTop)
+      );
+      holoRef.current.style.setProperty(
+        "--holo-pointer-from-left",
+        String(fromLeft)
+      );
+      holoRef.current.style.setProperty("--holo-background-x", `${pointerX}%`);
+      holoRef.current.style.setProperty("--holo-background-y", `${pointerY}%`);
+    }
+  };
+
+  const handleHoloMouseLeave = () => {
+    if (!holoRef.current || isExiting || !isHolographic) return;
+
+    // Reset to center position
+    if (holoRef.current) {
+      holoRef.current.style.setProperty("--holo-pointer-x", "50%");
+      holoRef.current.style.setProperty("--holo-pointer-y", "50%");
+      holoRef.current.style.setProperty("--holo-pointer-from-center", "0");
+      holoRef.current.style.setProperty("--holo-pointer-from-top", "0.5");
+      holoRef.current.style.setProperty("--holo-pointer-from-left", "0.5");
+      holoRef.current.style.setProperty("--holo-background-x", "50%");
+      holoRef.current.style.setProperty("--holo-background-y", "50%");
+    }
+  };
+
+  // Tilt effect handlers
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || isExiting || !enableTilt) return;
+
+    const rect = cardRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+
+    // Calculate tilt angles (max 15 degrees)
+    const maxTilt = 10;
+    const tiltX = (mouseY / (rect.height / 2)) * maxTilt;
+    const tiltY = (mouseX / (rect.width / 2)) * -maxTilt;
+
+    setTilt({ x: tiltX, y: tiltY });
+
+    // Also handle holographic tracking if enabled
+    if (isHolographic) {
+      handleHoloMouseMove(e);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!isExiting && enableTilt) {
+      setTilt({ x: 0, y: 0 });
+    }
+    if (isHolographic) {
+      handleHoloMouseLeave();
+    }
+  };
+
+  // Reset tilt when exiting
+  useEffect(() => {
+    if (isExiting) {
+      setTilt({ x: 0, y: 0 });
+    }
+  }, [isExiting]);
+
   // const isSpecial = isSpecialRarity();
   const isSpecial = false; // Commented out special logic
   const textColor = getTextColor(primaryColor);
   const borderColor = getBorderColor(textColor);
 
-  return (
+  const cardContent = (
     <div
-      className="w-[245px] h-[342px] rounded-lg p-1 shadow-lg relative"
+      ref={isHolographic ? holoRef : undefined}
+      className={`w-[245px] h-[342px] rounded-lg p-1 shadow-lg relative ${
+        isHolographic ? "card-holographic" : ""
+      }`}
       style={{
         background: createGradient(),
       }}
+      onMouseMove={
+        isHolographic && !enableTilt ? handleHoloMouseMove : undefined
+      }
+      onMouseLeave={
+        isHolographic && !enableTilt ? handleHoloMouseLeave : undefined
+      }
     >
+      {/* Holographic effect layers */}
+      {isHolographic && (
+        <>
+          <div className="card-holographic-behind" />
+          <div className="card-holographic-shine" />
+          <div className="card-holographic-glare" />
+        </>
+      )}
       {/* Background image for special cards */}
       {/* {isSpecial && (
         <img
@@ -359,6 +504,7 @@ export default function Card({ card }: CardProps) {
           backgroundColor: primaryColor, // isSpecial ? "transparent" : primaryColor,
           zIndex: "auto", // isSpecial ? 10 : "auto",
         }}
+        onClick={onClick}
       >
         {/* Top Header Section */}
         <div
@@ -501,4 +647,130 @@ export default function Card({ card }: CardProps) {
       </div>
     </div>
   );
+
+  // Wrap with tilt effect if enabled
+  if (enableTilt) {
+    return (
+      <div
+        ref={cardRef}
+        className={`${isHolographic ? "card-holographic-wrapper" : ""} ${
+          onClick ? "cursor-pointer" : ""
+        } relative`}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onClick={onClick}
+        style={{
+          transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          transformStyle: "preserve-3d",
+          transition: isExiting
+            ? "transform 0.5s ease-in-out"
+            : "transform 0.1s ease-out",
+        }}
+      >
+        {cardContent}
+        {isExpanded && onClose && (
+          <button
+            type="button"
+            className="absolute top-1 -right-16 z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close card"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Wrap with holographic wrapper if only holographic is enabled (no tilt)
+  if (isHolographic) {
+    return (
+      <div
+        className={`card-holographic-wrapper ${
+          onClick ? "cursor-pointer" : ""
+        } relative`}
+        onClick={onClick}
+      >
+        {cardContent}
+        {isExpanded && onClose && (
+          <button
+            type="button"
+            className="absolute top-1/2 -translate-y-1/2 -right-16 z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close card"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <div className="cursor-pointer relative" onClick={onClick}>
+        {cardContent}
+        {isExpanded && onClose && (
+          <button
+            type="button"
+            className="absolute top-1/2 -translate-y-1/2 -right-16 z-10 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close card"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return cardContent;
 }

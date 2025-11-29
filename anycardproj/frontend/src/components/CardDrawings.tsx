@@ -9,68 +9,6 @@ interface CardDrawingsProps {
 
 const MAX_VISIBLE_CARDS = 4; // Show up to 4 cards in the stack
 
-// Tilted card wrapper that applies 3D tilt effect based on mouse position
-function TiltedCardWrapper({
-  card,
-  children,
-  isExiting,
-}: {
-  card: CardType;
-  children: React.ReactNode;
-  isExiting?: boolean;
-}) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current || isExiting) return;
-
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    const mouseX = e.clientX - centerX;
-    const mouseY = e.clientY - centerY;
-
-    // Calculate tilt angles (max 15 degrees)
-    const maxTilt = 10;
-    const tiltX = (mouseY / (rect.height / 2)) * maxTilt;
-    const tiltY = (mouseX / (rect.width / 2)) * -maxTilt;
-
-    setTilt({ x: tiltX, y: tiltY });
-  };
-
-  const handleMouseLeave = () => {
-    if (!isExiting) {
-      setTilt({ x: 0, y: 0 });
-    }
-  };
-
-  // Reset tilt when exiting
-  useEffect(() => {
-    if (isExiting) {
-      setTilt({ x: 0, y: 0 });
-    }
-  }, [isExiting]);
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-        transformStyle: "preserve-3d",
-        transition: isExiting
-          ? "transform 0.5s ease-in-out"
-          : "transform 0.1s ease-out",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 // Scalable wrapper component that scales the entire card as a flat unit using CSS transform
 function ScalableCard({ card }: { card: CardType }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -226,13 +164,7 @@ export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
             }}
             onClick={isTopCard ? handleCardClick : undefined}
           >
-            {isTopCard ? (
-              <TiltedCardWrapper card={card} isExiting={isExiting}>
-                <Card card={card} />
-              </TiltedCardWrapper>
-            ) : (
-              <Card card={card} />
-            )}
+            <Card card={card} enableTilt={isTopCard} isExiting={isExiting} />
           </div>
         );
       })}
