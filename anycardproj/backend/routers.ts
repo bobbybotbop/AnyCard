@@ -3,8 +3,6 @@ import * as controllers from "./controllers";
 
 const router: Router = express.Router();
 
-// ============= CARD ROUTES =============
-
 router.post("/api/createCard", async (req, res) => {
   try {
     const result = await controllers.createDocument("cards", req.body);
@@ -14,8 +12,6 @@ router.post("/api/createCard", async (req, res) => {
     res.status(500).json({ error: "Failed to create card" });
   }
 });
-
-// ============= USER ROUTES =============
 
 router.post("/api/createUser", async (req, res) => {
   try {
@@ -39,6 +35,27 @@ router.get("/api/getUserData/:uid", async (req, res) => {
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Failed to get user data" });
+  }
+});
+
+router.get("/api/getAllUsers/:uid", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const users = await controllers.getAllUsers(uid);
+
+    if (!users) {
+      res.status(200).json({
+        error: "Something happened",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      users,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to fetch all users" });
   }
 });
 
@@ -83,8 +100,6 @@ router.get("/api/searchWikipedia", async (req, res) => {
   }
 });
 
-// ============= OPENROUTER ROUTES =============
-
 router.post("/api/openrouter", async (req, res) => {
   try {
     const { input } = req.body;
@@ -112,8 +127,6 @@ router.post("/api/openrouter", async (req, res) => {
     }
   }
 });
-
-// ============= CARD SET ROUTES =============
 
 router.post("/api/createRandomSet", async (req, res) => {
   try {
@@ -180,6 +193,51 @@ router.post("/api/openDailyPack/:userUid", async (req, res) => {
     return res
       .status(500)
       .json({ error: err.message || "Failed to open pack" });
+  }
+});
+
+router.post("/api/requestTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { sentUserUID, wantedCard, givenCard } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!sentUserUID || !wantedCard || !givenCard) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+
+  try {
+    await controllers.requestTrade(userUID, sentUserUID, wantedCard, givenCard);
+
+    return res.status(200).json({
+      message: "Trade successfully started",
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete("/api/respondTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { tradeId, response } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!response || !tradeId) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+
+  try {
+    await controllers.respondTrade(userUID, response, tradeId);
+    return res.status(200).json({
+      message: response,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
   }
 });
 

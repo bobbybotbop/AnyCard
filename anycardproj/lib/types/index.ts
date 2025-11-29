@@ -13,9 +13,15 @@ export interface userData {
   level: number;
   cards: any[];
   favoriteCards: any[];
+  sentTrade?: sentUser[];
+  requestedTrade?: requestUser[];
 }
 
 export type Rarity = "common" | "uncom" | "rare" | "epic" | "legend" | "mythic";
+
+export type Status = "pending" | "rejected" | "accepted";
+
+export type MyResponse = "accepted" | "rejected";
 
 export interface Attack {
   name: string;
@@ -38,6 +44,18 @@ export interface Set {
   cards: Card[];
 }
 
-export interface WeatherResponse {
-  raining: boolean;
+export interface sentUser {
+  tradeId: string;
+  sentUserUID: string;
+  wantedCard: Card;
+  givenCard: Card;
+  status: Status;
+}
+
+export interface requestUser {
+  tradeId: string;
+  requestedUserUID: string;
+  wantedCard: Card;
+  givenCard: Card;
+  status: Status;
 }
