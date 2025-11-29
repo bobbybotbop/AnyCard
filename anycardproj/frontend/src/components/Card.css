@@ -1,0 +1,256 @@
+/* Holographic Card Effect Styles */
+
+/* CSS Custom Properties for dynamic mouse tracking */
+.card-holographic {
+  --holo-pointer-x: 50%;
+  --holo-pointer-y: 50%;
+  --holo-pointer-from-center: 0;
+  --holo-pointer-from-top: 0.5;
+  --holo-pointer-from-left: 0.5;
+  --holo-background-x: 50%;
+  --holo-background-y: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Holographic wrapper - adds perspective and 3D context */
+.card-holographic-wrapper {
+  position: relative;
+  perspective: 1000px;
+  transform: translate3d(0, 0, 0.1px);
+}
+
+/* Base holographic card container */
+.card-holographic {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Behind glow effect */
+.card-holographic-behind {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--holo-pointer-x) var(--holo-pointer-y),
+    rgba(125, 190, 255, 0.5) 0%,
+    transparent 25%
+  );
+  filter: blur(50px) saturate(1.1);
+  opacity: 0.4;
+  transition: opacity 200ms ease;
+  border-radius: inherit;
+}
+
+/* Holographic shine layer - main rainbow effect */
+.card-holographic-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  mix-blend-mode: color-dodge;
+  filter: brightness(0.4) contrast(1.25) saturate(3) opacity(0.8);
+  animation: holo-shine 18s linear infinite;
+  will-change: background-position;
+  background: repeating-linear-gradient(
+      0deg,
+      hsl(2, 100%, 73%) calc(5% * 1),
+      hsl(53, 100%, 69%) calc(5% * 2),
+      hsl(93, 100%, 69%) calc(5% * 3),
+      hsl(176, 100%, 76%) calc(5% * 4),
+      hsl(228, 100%, 74%) calc(5% * 5),
+      hsl(283, 100%, 73%) calc(5% * 6),
+      hsl(2, 100%, 73%) calc(5% * 7)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      #0e152e 0%,
+      hsl(180, 10%, 60%) 3.8%,
+      hsl(180, 29%, 66%) 4.5%,
+      hsl(180, 10%, 60%) 5.2%,
+      #0e152e 10%,
+      #0e152e 12%
+    ),
+    radial-gradient(
+      farthest-corner circle at var(--holo-pointer-x) var(--holo-pointer-y),
+      hsla(0, 0%, 0%, 0.1) 12%,
+      hsla(0, 0%, 0%, 0.15) 20%,
+      hsla(0, 0%, 0%, 0.25) 120%
+    );
+  background-position:
+    0 var(--holo-background-y),
+    var(--holo-background-x) var(--holo-background-y),
+    center;
+  background-blend-mode: color, hard-light;
+  background-size:
+    500% 500%,
+    300% 300%,
+    200% 200%;
+  background-repeat: repeat;
+}
+
+/* Shine pseudo-elements for additional effects */
+.card-holographic-shine::before,
+.card-holographic-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0.15;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+
+.card-holographic-shine::before {
+  background: linear-gradient(
+      45deg,
+      hsl(176, 100%, 76%),
+      hsl(228, 100%, 74%),
+      hsl(283, 100%, 73%),
+      hsl(2, 100%, 73%),
+      hsl(53, 100%, 69%),
+      hsl(93, 100%, 69%)
+    ),
+    radial-gradient(
+      circle at var(--holo-pointer-x) var(--holo-pointer-y),
+      hsl(0, 0%, 70%) 0%,
+      hsla(0, 0%, 30%, 0.2) 90%
+    );
+  background-size:
+    250% 250%,
+    100% 100%;
+  background-position:
+    var(--holo-pointer-x) var(--holo-pointer-y),
+    center;
+  background-blend-mode: color-dodge;
+  /* Clamp brightness to prevent overflow - much more subtle */
+  filter: brightness(calc(0.4 + (1 - var(--holo-pointer-from-center)) * 0.2))
+    contrast(calc(1 + var(--holo-pointer-from-center) * 0.2))
+    saturate(calc(0.2 + var(--holo-pointer-from-center) * 0.15));
+  mix-blend-mode: screen;
+  z-index: 1;
+}
+
+.card-holographic-shine::after {
+  background-position:
+    0 var(--holo-background-y),
+    calc(var(--holo-background-x) * 0.4) calc(var(--holo-background-y) * 0.5),
+    center;
+  background-size:
+    200% 300%,
+    700% 700%,
+    100% 100%;
+  mix-blend-mode: overlay;
+  filter: brightness(0.6) contrast(1.2);
+  z-index: 2;
+}
+
+/* Glare effect for light reflection */
+.card-holographic-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  background-image: radial-gradient(
+    farthest-corner circle at var(--holo-pointer-x) var(--holo-pointer-y),
+    hsl(248, 25%, 80%) 12%,
+    hsla(207, 40%, 30%, 0.5) 90%
+  );
+  mix-blend-mode: overlay;
+  filter: brightness(0.65) contrast(1.15);
+  opacity: 0.45;
+}
+
+/* Active/hover state - minimal enhancement */
+.card-holographic-wrapper:hover .card-holographic-shine,
+.card-holographic-wrapper.active .card-holographic-shine {
+  filter: brightness(0.5) contrast(1.22) saturate(0.36);
+  animation-play-state: paused;
+}
+
+.card-holographic-wrapper:hover .card-holographic-shine::before,
+.card-holographic-wrapper.active .card-holographic-shine::before,
+.card-holographic-wrapper:hover .card-holographic-shine::after,
+.card-holographic-wrapper.active .card-holographic-shine::after {
+  opacity: 0.2;
+}
+
+.card-holographic-wrapper:hover .card-holographic-behind,
+.card-holographic-wrapper.active .card-holographic-behind {
+  opacity: 0.45;
+}
+
+.card-holographic-wrapper:hover .card-holographic-glare,
+.card-holographic-wrapper.active .card-holographic-glare {
+  opacity: 0.5;
+}
+
+/* Animation for continuous shimmer effect */
+@keyframes holo-shine {
+  0% {
+    background-position:
+      0 var(--holo-background-y),
+      0 0,
+      center;
+  }
+  100% {
+    background-position:
+      0 var(--holo-background-y),
+      90% 90%,
+      center;
+  }
+}
+
+/* Ensure card content stays above holographic effects and is isolated from blend modes */
+.card-holographic
+  > *:not(.card-holographic-behind):not(.card-holographic-shine):not(
+    .card-holographic-glare
+  ) {
+  position: relative;
+  z-index: 5;
+  isolation: isolate;
+  mix-blend-mode: normal;
+}
+
+/* Close button for expanded card view */
+.card-close-button {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.75rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+  z-index: 10;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.card-close-button:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.8);
+  background: rgba(30, 64, 175, 0.95);
+  color: #f9fafb;
+}
+
+.card-close-button:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.7);
+}

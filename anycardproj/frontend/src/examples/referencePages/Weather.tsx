@@ -12,7 +12,6 @@ const Weather = () => {
   });
 
   useEffect(() => {
-    console.log("Loading weather...");
     getWeather().then((data) => setRaining(data));
   }, []);
 

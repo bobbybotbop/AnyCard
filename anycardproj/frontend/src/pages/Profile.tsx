@@ -28,7 +28,6 @@ const Profile = () => {
     const fetch = async () => {
       if (!user?.uid) {
         setLoading(false);
-        console.log("user has not logged in");
         return;
       }
       try {
@@ -103,7 +102,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-400 to-white p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-[90%] mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
         </div>

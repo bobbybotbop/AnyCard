@@ -1,0 +1,173 @@
+import { useState, useRef, useEffect } from "react";
+import Card from "./Card";
+import { Card as CardType } from "@full-stack/types";
+
+interface CardDrawingsProps {
+  cards: CardType[];
+  onClose?: () => void;
+}
+
+const MAX_VISIBLE_CARDS = 4; // Show up to 4 cards in the stack
+
+// Scalable wrapper component that scales the entire card as a flat unit using CSS transform
+function ScalableCard({ card }: { card: CardType }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        const height = containerRef.current.offsetHeight;
+        // Base card size: 245px × 342px
+        // Calculate scale based on available space
+        const scaleX = width / 245;
+        const scaleY = height / 342;
+        const newScale = Math.min(scaleX, scaleY, 1.5); // Cap at 150% to prevent too large
+        setScale(Math.max(0.3, newScale)); // Min 30% scale
+      }
+    };
+
+    updateScale();
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full flex items-center justify-center"
+    >
+      <div
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+          width: "245px",
+          height: "342px",
+        }}
+      >
+        <Card card={card} />
+      </div>
+    </div>
+  );
+}
+
+export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleCardClick = () => {
+    if (isAnimating || currentIndex >= cards.length) return;
+
+    setIsAnimating(true);
+
+    // After animation completes, advance to next card
+    // Cards behind will automatically animate forward due to position changes
+    setTimeout(() => {
+      setCurrentIndex((prev) => prev + 1);
+      setIsAnimating(false);
+    }, 500);
+  };
+
+  // Calculate which cards to display (current + up to MAX_VISIBLE_CARDS behind it)
+  const getVisibleCards = () => {
+    const visible: Array<{ card: CardType; index: number; position: number }> =
+      [];
+
+    for (
+      let i = 0;
+      i < MAX_VISIBLE_CARDS && currentIndex + i < cards.length;
+      i++
+    ) {
+      visible.push({
+        card: cards[currentIndex + i],
+        index: currentIndex + i,
+        position: i, // 0 = top card, 1 = second card, etc.
+      });
+    }
+
+    return visible;
+  };
+
+  const visibleCards = getVisibleCards();
+
+  // If no cards left, show all viewed cards in a grid
+  if (currentIndex >= cards.length) {
+    const viewedCards = cards.slice(0, currentIndex);
+    return (
+      <div className="w-full h-full max-w-full max-h-full overflow-hidden flex flex-col relative">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-20 w-12 h-12 flex items-center justify-center bg-black/30 hover:bg-black/50 rounded-full transition-colors backdrop-blur-sm cursor-pointer"
+            aria-label="Close"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="opacity-90"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        )}
+        <div className="grid grid-cols-5 auto-rows-[minmax(0,1fr)] gap-x-8 gap-y-10 justify-items-center items-start w-full flex-1 overflow-auto">
+          {viewedCards.map((card, index) => (
+            <ScalableCard key={index} card={card} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex items-center justify-center w-full h-full max-w-full max-h-full overflow-hidden">
+      {visibleCards.map(({ card, index, position }) => {
+        const isTopCard = position === 0;
+        const isExiting = isTopCard && isAnimating;
+
+        // Calculate transform values for staggered effect
+        // Cards behind the top card are offset, scaled, rotated, and have reduced opacity
+        const offsetX = position * 15; // Horizontal offset: 0px, 15px, 30px, 45px
+        const offsetY = position * 8; // Vertical offset: 0px, 8px, 16px, 24px
+        const scale = 1 - position * 0.03; // Scale: 100%, 97%, 94%, 91%
+        const rotation = position * 1.5; // Rotation: 0°, 1.5°, 3°, 4.5°
+        const opacity = Math.max(0.3, 1 - position * 0.15); // Opacity: 100%, 85%, 70%, 55% (min 30%)
+
+        // Exit animation: slide left, move up, rotate, and fade out
+        const exitTransform = isExiting
+          ? "translateX(-300px) translateY(-50px) rotate(-15deg) scale(0.8)"
+          : `translateX(${offsetX}px) translateY(${offsetY}px) scale(${scale}) rotate(${rotation}deg)`;
+        const exitOpacity = isExiting ? 0 : opacity;
+
+        return (
+          <div
+            key={index}
+            className="absolute transition-all duration-500 ease-in-out"
+            style={{
+              transform: exitTransform,
+              opacity: exitOpacity,
+              zIndex: MAX_VISIBLE_CARDS - position, // Higher z-index for cards closer to front
+              cursor: isTopCard ? "pointer" : "default",
+              pointerEvents: isTopCard ? "auto" : "none", // Only top card is clickable
+            }}
+            onClick={isTopCard ? handleCardClick : undefined}
+          >
+            <Card card={card} enableTilt={isTopCard} isExiting={isExiting} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}

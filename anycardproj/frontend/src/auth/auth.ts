@@ -19,8 +19,7 @@ export const signin = async () => {
       email: user.email || "",
       username: user.displayName || "",
     };
-    console.log(await createUser(createUserParams));
-    // console.log(user);
+    await createUser(createUserParams);
 
     return { token, user };
   } catch (error: any) {
@@ -28,9 +27,6 @@ export const signin = async () => {
     const message = error.message;
     const email = error.customData?.email;
 
-    console.log(
-      `An error ${code} occurred when logging user with email: ${email} with message: ${message}`
-    );
     // Re-throw the error so the calling code can handle it
     throw error;
   }
@@ -40,6 +36,6 @@ export const signOut = async () => {
   try {
     await auth.signOut();
   } catch (error) {
-    console.log(error);
+    // Error handled silently
   }
 };
