@@ -28,6 +28,7 @@ const MAX_WIDTH = 350; // Maximum width in pixels for overlay image
 const MAX_HEIGHT = 300; // Maximum height in pixels for overlay image
 const TRANSLATE_OVERLAY_Y = -70;
 const textPadding = -10;
+const TEXT_MAX_WIDTH = 350; // Maximum width in pixels for text (independent of overlay)
 
 // Color analysis utilities
 /**
@@ -364,8 +365,8 @@ async function compositeTextures(
             totalTextWidth += metrics.width;
           }
 
-          // Scale font size to fit overlay width (with padding)
-          const targetWidth = drawWidth * 0.95; // 95% of overlay width for padding
+          // Scale font size to fit fixed width (independent of overlay)
+          const targetWidth = TEXT_MAX_WIDTH; // Fixed width independent of overlay
           if (totalTextWidth !== targetWidth && totalTextWidth > 0) {
             const scaleFactor = targetWidth / totalTextWidth;
             baseFontSize = baseFontSize * scaleFactor;

@@ -49,3 +49,17 @@ IMPORTANT:
 - Balance the stats appropriately - higher rarity should be noticeably stronger
 - Return ONLY valid JSON, no additional text or explanation
 - Generate exactly 21 cards in the specified rarity distribution`;
+
+export function generatePromptWithExclusions(excludedThemes: string[]): string {
+  if (!excludedThemes || excludedThemes.length === 0) {
+    return generateRandomCardSetPrompt;
+  }
+
+  const exclusionText = `\n\nCRITICAL EXCLUSION REQUIREMENT:
+- DO NOT use any of the following themes that have already been used:
+${excludedThemes.map((theme) => `  - "${theme}"`).join("\n")}
+- You MUST choose a completely different theme that is NOT in the list above.
+- Ensure your chosen theme is unique and has not been used before.`;
+
+  return generateRandomCardSetPrompt + exclusionText;
+}

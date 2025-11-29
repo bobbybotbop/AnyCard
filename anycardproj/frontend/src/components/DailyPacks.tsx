@@ -380,7 +380,7 @@ export default function DailyPacks({
               rotation={packConfigs[0].rotation}
               autoRotate={false}
               overlayImageUrl={sets[0]?.coverImage}
-              setTitle={sets[0]?.theme}
+              setTitle={sets[0]?.name}
               enableBobbing={
                 clickedPackIndex === null &&
                 openedPackIndex === null &&
@@ -430,7 +430,7 @@ export default function DailyPacks({
               rotation={packConfigs[1].rotation}
               autoRotate={false}
               overlayImageUrl={sets[1]?.coverImage}
-              setTitle={sets[1]?.theme}
+              setTitle={sets[1]?.name}
               enableBobbing={
                 clickedPackIndex === null &&
                 openedPackIndex === null &&
@@ -480,7 +480,7 @@ export default function DailyPacks({
               rotation={packConfigs[2].rotation}
               autoRotate={false}
               overlayImageUrl={sets[2]?.coverImage}
-              setTitle={sets[2]?.theme}
+              setTitle={sets[2]?.name}
               enableBobbing={
                 clickedPackIndex === null &&
                 openedPackIndex === null &&

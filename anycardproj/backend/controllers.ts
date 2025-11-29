@@ -7,7 +7,10 @@ import {
   Attack,
 } from "@full-stack/types";
 import fetch from "node-fetch";
-import { generateRandomCardSetPrompt } from "./prompts";
+import {
+  generateRandomCardSetPrompt,
+  generatePromptWithExclusions,
+} from "./prompts";
 const { db, auth } = require("./firebase");
 
 const WIKIPEDIA_RATE_LIMIT_DELAY = 2000;
@@ -105,6 +108,36 @@ export async function getSetFromCollection(
     return data as Set;
   } catch (error) {
     throw error;
+  }
+}
+
+export async function getAllExistingThemes(): Promise<string[]> {
+  try {
+    const themesSet = new Set<string>();
+
+    // Query dailyPacks collection
+    const dailyPacksSnapshot = await db.collection("dailyPacks").get();
+    dailyPacksSnapshot.forEach((doc: any) => {
+      const data = doc.data() as Set;
+      if (data.theme && typeof data.theme === "string") {
+        themesSet.add(data.theme.trim());
+      }
+    });
+
+    // Query cards collection
+    const cardsSnapshot = await db.collection("cards").get();
+    cardsSnapshot.forEach((doc: any) => {
+      const data = doc.data() as Set;
+      if (data.theme && typeof data.theme === "string") {
+        themesSet.add(data.theme.trim());
+      }
+    });
+
+    return Array.from(themesSet);
+  } catch (error) {
+    console.error("Error fetching existing themes:", error);
+    // Return empty array on error to allow generation to proceed
+    return [];
   }
 }
 
@@ -354,9 +387,16 @@ export async function processSetData(parsedData: ParsedSetData): Promise<Set> {
 
 export async function createRandomSet(
   prompt: string = generateRandomCardSetPrompt,
-  collection: string = "cards"
+  collection: string = "cards",
+  excludedThemes?: string[]
 ): Promise<Set> {
-  const result = await callOpenRouter(prompt);
+  // Use prompt with exclusions if excludedThemes is provided
+  const finalPrompt =
+    excludedThemes && excludedThemes.length > 0
+      ? generatePromptWithExclusions(excludedThemes)
+      : prompt;
+
+  const result = await callOpenRouter(finalPrompt);
   if (!result || !result.choices || result.choices.length === 0) {
     throw new Error("No response received from OpenRouter API");
   }
@@ -385,20 +425,68 @@ export async function createRandomSet(
 export async function createThreeRandomSets(): Promise<Set[]> {
   const processedSets: Set[] = [];
 
+  // Fetch all existing themes from dailyPacks and cards collections
+  const existingThemes = await getAllExistingThemes();
+  const excludedThemes = [...existingThemes];
+
+  console.log(
+    `Found ${excludedThemes.length} existing themes to exclude:`,
+    excludedThemes
+  );
+
   for (let i = 0; i < 3; i++) {
     try {
       const setObject = await createRandomSet(
         generateRandomCardSetPrompt,
-        "dailyPacks"
+        "dailyPacks",
+        excludedThemes
       );
 
       console.log(`Generated set theme: ${setObject.theme}`);
 
       processedSets.push(setObject);
+
+      // Add the newly generated theme to excluded themes to avoid duplicates within this batch
+      excludedThemes.push(setObject.theme);
     } catch (error) {
       console.error(`Failed to create set ${i + 1}:`, error);
       throw error;
     }
+  }
+
+  // Migrate old dailyPacks to cards collection
+  try {
+    const dailyPacksSnapshot = await db.collection("dailyPacks").get();
+    const newSetNames = new Set(processedSets.map((s) => s.name));
+
+    const migrationPromises: Promise<void>[] = [];
+
+    dailyPacksSnapshot.forEach((doc: any) => {
+      const docId = doc.id;
+      const docData = doc.data();
+
+      // If this is not one of the newly generated sets, migrate it to cards
+      if (!newSetNames.has(docId)) {
+        migrationPromises.push(
+          (async () => {
+            // Copy to cards collection
+            await createDocumentWithId("cards", docId, docData);
+            // Delete from dailyPacks collection
+            await db.collection("dailyPacks").doc(docId).delete();
+            console.log(`Migrated dailyPack "${docId}" to cards collection`);
+          })()
+        );
+      }
+    });
+
+    // Wait for all migrations to complete
+    await Promise.all(migrationPromises);
+    console.log(
+      `Migrated ${migrationPromises.length} old dailyPacks to cards collection`
+    );
+  } catch (error) {
+    console.error("Error migrating old dailyPacks to cards:", error);
+    // Don't throw - allow function to continue even if migration fails
   }
 
   console.log("All done generating!");
