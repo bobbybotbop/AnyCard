@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import DailyPacks from "../components/DailyPacks";
-import PackGrid from "../components/PackGrid";
-import CustomPackGrid from "../components/CustomPackGrid";
-import { createCustomSet } from "../api/cards";
+import PreviousSetsSection from "../components/PreviousSetsSection";
+import CustomSetCreationSection from "../components/CustomSetCreationSection";
+import PreviousCustomSetsSection from "../components/PreviousCustomSetsSection";
 // import Carousel from "../components/Carousel";
 
 const HomePage = () => {
@@ -66,35 +66,9 @@ const HomePage = () => {
     }
   };
 
-  const handleCreateCustomSet = async () => {
-    const trimmedInput = themeInput.trim();
-    if (!trimmedInput) {
-      setCreateSetError("Please enter a theme idea");
-      return;
-    }
-    if (trimmedInput.length > 200) {
-      setCreateSetError("Theme input is too long (max 200 characters)");
-      return;
-    }
-
-    setIsCreatingSet(true);
-    setCreateSetError(null);
-    setCreateSetSuccess(null);
-
-    try {
-      const createdSet = await createCustomSet(trimmedInput);
-      setCreateSetSuccess(`Successfully created set "${createdSet.name}"!`);
-      setThemeInput("");
-      // Refresh the custom sets grid by updating the key
-      setCustomSetsRefreshKey((prev) => prev + 1);
-      setTimeout(() => {
-        setCreateSetSuccess(null);
-      }, 5000);
-    } catch (error: any) {
-      setCreateSetError(error.message || "Failed to create custom set");
-    } finally {
-      setIsCreatingSet(false);
-    }
+  const handleCustomSetCreated = () => {
+    // Refresh the custom sets grid by updating the key
+    setCustomSetsRefreshKey((prev) => prev + 1);
   };
 
   return (
@@ -117,90 +91,40 @@ const HomePage = () => {
           />
         </div>
 
-        {/* Previous Sets Section */}
-        <div className=" w-full">
-          <div className="text-[17vw] font-bold leading-none select-none background-text-gradient z-[-10] absolute w-full">
-            <div>Previous</div>
-            <div className="text-right mt-[35vh] pr-[10vw] ">Sets</div>
-          </div>
-          <div className="pt-[7%]">
-            <PackGrid
-              isLocked={
-                activeComponent === "dailyPacks" ||
-                activeComponent === "customPackGrid"
-              }
-              onSelectionStart={handlePackGridSelectionStart}
-              onSelectionEnd={handlePackGridSelectionEnd}
-              resetRef={packGridResetRef}
-            />
-          </div>
-        </div>
-
         {/* Custom Set Creation Section */}
-        <div className="w-full mt-[10vh]">
-          <div className="text-[17vw] font-bold leading-none select-none background-text-gradient z-[-10] absolute w-full">
-            <div>Your</div>
-            <div className="text-right mt-[35vh] pr-[10vw]">Theme</div>
-          </div>
-          <div className="pt-[7%] relative z-10">
-            <div className="flex flex-col items-center gap-4 max-w-2xl mx-auto">
-              <input
-                type="text"
-                value={themeInput}
-                onChange={(e) => {
-                  setThemeInput(e.target.value);
-                  setCreateSetError(null);
-                  setCreateSetSuccess(null);
-                }}
-                placeholder="Enter a card theme idea (e.g., 'space', 'animals', 'famous scientists')"
-                className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white/90 backdrop-blur-sm"
-                disabled={isCreatingSet}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isCreatingSet) {
-                    handleCreateCustomSet();
-                  }
-                }}
-              />
-              <button
-                onClick={handleCreateCustomSet}
-                disabled={isCreatingSet || !themeInput.trim()}
-                className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {isCreatingSet ? "Creating Set..." : "Create Custom Set"}
-              </button>
-              {createSetError && (
-                <div className="text-red-600 text-sm mt-2">
-                  {createSetError}
-                </div>
-              )}
-              {createSetSuccess && (
-                <div className="text-green-600 text-sm mt-2">
-                  {createSetSuccess}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <CustomSetCreationSection
+          themeInput={themeInput}
+          setThemeInput={setThemeInput}
+          isCreatingSet={isCreatingSet}
+          setIsCreatingSet={setIsCreatingSet}
+          createSetError={createSetError}
+          setCreateSetError={setCreateSetError}
+          createSetSuccess={createSetSuccess}
+          setCreateSetSuccess={setCreateSetSuccess}
+          onSetCreated={handleCustomSetCreated}
+        />
 
         {/* Custom Sets History Section */}
-        <div className="w-full mt-[10vh]">
-          <div className="text-[17vw] font-bold leading-none select-none background-text-gradient z-[-10] absolute w-full">
-            <div>Custom</div>
-            <div className="text-right mt-[35vh] pr-[10vw]">Sets</div>
-          </div>
-          <div className="pt-[7%]">
-            <CustomPackGrid
-              key={customSetsRefreshKey}
-              isLocked={
-                activeComponent === "dailyPacks" ||
-                activeComponent === "packGrid"
-              }
-              onSelectionStart={handleCustomPackGridSelectionStart}
-              onSelectionEnd={handleCustomPackGridSelectionEnd}
-              resetRef={customPackGridResetRef}
-            />
-          </div>
-        </div>
+        <PreviousCustomSetsSection
+          isLocked={
+            activeComponent === "dailyPacks" || activeComponent === "packGrid"
+          }
+          onSelectionStart={handleCustomPackGridSelectionStart}
+          onSelectionEnd={handleCustomPackGridSelectionEnd}
+          resetRef={customPackGridResetRef}
+          refreshKey={customSetsRefreshKey}
+        />
+
+        {/* Previous Sets Section */}
+        <PreviousSetsSection
+          isLocked={
+            activeComponent === "dailyPacks" ||
+            activeComponent === "customPackGrid"
+          }
+          onSelectionStart={handlePackGridSelectionStart}
+          onSelectionEnd={handlePackGridSelectionEnd}
+          resetRef={packGridResetRef}
+        />
 
         {/* Infinite scrolling PackModels */}
         {/* <Carousel /> */}
