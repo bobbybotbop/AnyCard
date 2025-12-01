@@ -764,26 +764,28 @@ export async function respondTrade(
     throw new Error("Invalid requested user or sent user");
   }
 
-  let reqUser = reqUserData.sentTrade.find((u) => u.tradeId === tradeId);
+  const reqUser = reqUserData.sentTrade.find((u) => u.tradeId === tradeId);
   if (!reqUser) throw new Error("User never wanted card?!");
   reqUser.status = response;
 
   if (response === "accepted") {
-    const index = userData.cards.findIndex((u) => u === reqUser.givenCard);
+    const index = userData.cards.findIndex((u) => u === reqUser!.givenCard);
     if (index !== -1) {
       userData.cards.splice(index, 1);
     } else {
       throw new Error("User never had the card to start off with");
     }
-    userData.cards.push(reqUser.wantedCard);
+    userData.cards.push(reqUser!.wantedCard);
 
-    const index2 = reqUserData.cards.findIndex((u) => u === reqUser.wantedCard);
+    const index2 = reqUserData.cards.findIndex(
+      (u) => u === reqUser!.wantedCard
+    );
     if (index2 !== -1) {
       reqUserData.cards.splice(index2, 1);
     } else {
       throw new Error("Requested User never had the card");
     }
-    reqUserData.cards.push(reqUser.givenCard);
+    reqUserData.cards.push(reqUser!.givenCard);
   } else if (response === "rejected") {
     reqUser.status = "rejected";
   }
