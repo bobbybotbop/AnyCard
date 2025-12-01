@@ -3,6 +3,7 @@ import Profile from "../pages/Profile";
 import HomePage from "../pages/Home";
 import LoginPage from "../pages/Login";
 import Trading from "../pages/Trading";
+import Inbox from "../pages/Inbox";
 import { ComponentType } from "react";
 import {
   LucideIcon,
@@ -63,6 +64,12 @@ export const PATHS: {
     link: "/login",
     label: "login",
     component: LoginPage,
+    icon: LogIn,
+  },
+  {
+    link: "/inbox",
+    label: "Inbox",
+    component: Inbox,
     icon: LogIn,
   },
 ];

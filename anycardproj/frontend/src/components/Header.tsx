@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Home, User, Package, ArrowLeftRight } from "lucide-react";
+import { Home, User, Package, ArrowLeftRight, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import anyCardLogo from "../../public/anyCardLogo.png";
 
@@ -56,6 +56,9 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
           </Link>
           <Link to="/trading" className="text-white" title="Trading">
             <ArrowLeftRight className="w-6 h-6 flex-shrink-0" />
+          </Link>
+          <Link to="/inbox" className="text-white" title="Inbox">
+            <Mail className="w-6 h-6 flex-shrink-0" />
           </Link>
           {/* <img className="h-10 w-auto ml-2" src={logo} alt="AnyCard Logo" /> */}
         </div>
