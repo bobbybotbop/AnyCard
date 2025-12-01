@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card as CardType } from "../data/cards";
+import { proxyImageUrl } from "../../lib/utils";
 import "./Card.css";
 
 interface CardProps {
@@ -341,7 +342,7 @@ export default function Card({
 
   // Extract colors when image loads
   useEffect(() => {
-    const currentImageSrc = imageError ? "/ImageNotFound.jpg" : card.picture;
+    const currentImageSrc = imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture);
     extractColorsFromImage(currentImageSrc);
   }, [card.picture, imageError]);
 
@@ -483,7 +484,7 @@ export default function Card({
       {/* {isSpecial && (
         <img
           ref={imageRef}
-          src={imageError ? "/ImageNotFound.jpg" : card.picture}
+          src={imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture)}
           alt={card.name}
           className="absolute inset-0 w-full my-auto object-cover rounded-lg"
           style={{ zIndex: 5 }}
@@ -565,7 +566,7 @@ export default function Card({
           {/* {isSpecial ? (
             // Hidden image for spacing on special cards
             <img
-              src={imageError ? "/ImageNotFound.jpg" : card.picture}
+              src={imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture)}
               alt=""
               className="w-full h-full object-contain object-center rounded-sm opacity-0 pointer-events-none"
               aria-hidden="true"
@@ -583,7 +584,7 @@ export default function Card({
             >
               <img
                 ref={imageRef}
-                src={imageError ? "/ImageNotFound.jpg" : card.picture}
+                src={imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture)}
                 alt={card.name}
                 className="w-full h-full object-contain object-center rounded-sm"
                 onError={() => setImageError(true)}

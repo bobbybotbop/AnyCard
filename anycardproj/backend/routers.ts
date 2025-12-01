@@ -81,28 +81,28 @@ router.get("/api/getUserInventory/:userUid", async (req, res) => {
 
 // ============= WIKIPEDIA ROUTES =============
 
-router.get("/api/searchWikipedia", async (req, res) => {
-  try {
-    const { query } = req.query;
+// router.get("/api/searchWikipedia", async (req, res) => {
+//   try {
+//     const { query } = req.query;
 
-    if (!query || typeof query !== "string") {
-      res.status(400).json({ error: "Query parameter is required" });
-      return;
-    }
+//     if (!query || typeof query !== "string") {
+//       res.status(400).json({ error: "Query parameter is required" });
+//       return;
+//     }
 
-    const result = await controllers.searchWikipedia(query);
-    res.status(200).json(result);
-  } catch (error: any) {
-    console.error("Error searching Wikipedia:", error);
-    if (error.message === "No results found") {
-      res.status(404).json({ error: error.message });
-    } else if (error.message === "Failed to fetch page summary") {
-      res.status(500).json({ error: error.message });
-    } else {
-      res.status(500).json({ error: "Failed to search Wikipedia" });
-    }
-  }
-});
+//     const result = await controllers.searchWikipedia(query);
+//     res.status(200).json(result);
+//   } catch (error: any) {
+//     console.error("Error searching Wikipedia:", error);
+//     if (error.message === "No results found") {
+//       res.status(404).json({ error: error.message });
+//     } else if (error.message === "Failed to fetch page summary") {
+//       res.status(500).json({ error: error.message });
+//     } else {
+//       res.status(500).json({ error: "Failed to search Wikipedia" });
+//     }
+//   }
+// });
 
 // ============= OPENROUTER ROUTES =============
 
@@ -200,35 +200,27 @@ router.post("/api/openPack/:userUid", async (req, res) => {
     return res.status(400).json({ error: "userUid required" });
   }
 
-  const collectionName = collection || "dailyPacks";
-
   try {
-    const result = await controllers.openPack(userUid, packId, collectionName);
+    const result = await controllers.openPack(
+      userUid,
+      packId,
+      collection || "dailyPacks"
+    );
     return res.status(200).json(result);
   } catch (err: any) {
     console.error("openPack failed:", err);
     if (err.message === "Pack not found") {
       return res.status(404).json({ error: err.message });
     }
+    if (err.message === "User not found") {
+      return res.status(404).json({ error: err.message });
+    }
+    if (err.message === "Pack has no cards configured") {
+      return res.status(400).json({ error: err.message });
+    }
     return res
       .status(500)
       .json({ error: err.message || "Failed to open pack" });
-  }
-});
-
-router.post("/api/saveFavoriteCard/:userUid", async (req, res) => {
-  const { userUid } = req.params;
-  const { card } = req.body;
-
-  if (!userUid || !card) {
-    return res.status(404).json({ error: "Invalid input" });
-  }
-
-  try {
-    const result = await controllers.saveFavoritePack(userUid, card);
-    return res.status(200).json(result);
-  } catch {
-    return res.status(500).json({ error: "Failed to successfuly save card" });
   }
 });
 
@@ -245,12 +237,15 @@ router.post("/api/createCustomSet", async (req, res) => {
     res.status(200).json(result);
   } catch (error: any) {
     console.error("Error in createCustomSet", error);
-    if (error.message === "Theme input is required" || error.message === "Theme input is too long (max 200 characters)") {
-      res.status(400).json({ error: error.message });
-    } else if (error.message === "No results found") {
+    if (error.message === "No results found") {
       res.status(404).json({ error: error.message });
     } else if (error.message.includes("API key not configured")) {
       res.status(500).json({ error: error.message });
+    } else if (
+      error.message.includes("Theme input is required") ||
+      error.message.includes("Theme input is too long")
+    ) {
+      res.status(400).json({ error: error.message });
     } else {
       res.status(500).json({ error: "Failed to create custom set" });
     }
@@ -267,48 +262,137 @@ router.get("/api/getAllCustomSets", async (req, res) => {
   }
 });
 
-router.post("/api/requestTrade/:userUID", async (req, res) => {
-  const { userUID } = req.params;
-  const { sentUserUID, wantedCard, givenCard } = req.body;
+// router.post("/api/openDailyPack/:userUid", async (req, res) => {
+//   const { userUid } = req.params;
+//   const { dailyPackId } = req.body || {};
 
-  if (!userUID) {
-    return res.status(400).json({ error: "userUid required" });
-  }
+//   if (!dailyPackId || typeof dailyPackId !== "string") {
+//     return res.status(400).json({ error: "dailyPackId required" });
+//   }
 
-  if (!sentUserUID || !wantedCard || !givenCard) {
-    return res.status(400).json({ error: "invalid body" });
-  }
+//   if (!userUid || typeof userUid !== "string") {
+//     return res.status(400).json({ error: "userUid required" });
+//   }
 
+//   try {
+//     const result = await controllers.openDailyPack(userUid, dailyPackId);
+//     return res.status(200).json(result);
+//   } catch (err: any) {
+//     console.error("openDailyPack failed:", err);
+//     if (err.message === "Pack not found") {
+//       return res.status(404).json({ error: err.message });
+//     }
+//     return res
+//       .status(500)
+//       .json({ error: err.message || "Failed to open pack" });
+//   }
+// });
+
+// ============= IMAGE PROXY ROUTES =============
+
+router.get("/api/proxy-image", async (req, res) => {
   try {
-    await controllers.requestTrade(userUID, sentUserUID, wantedCard, givenCard);
+    const imageUrl = req.query.url as string;
 
-    return res.status(200).json({
-      message: "Trade successfully started",
-    });
-  } catch (err: any) {
-    return res.status(400).json({ error: err.message });
-  }
-});
+    if (!imageUrl) {
+      return res.status(400).json({ error: "URL parameter required" });
+    }
 
-router.delete("/api/respondTrade/:userUID", async (req, res) => {
-  const { userUID } = req.params;
-  const { tradeId, response } = req.body;
+    // Validate URL format
+    let url: URL;
+    try {
+      url = new URL(imageUrl);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL format" });
+    }
 
-  if (!userUID) {
-    return res.status(400).json({ error: "userUid required" });
-  }
+    // Only allow http and https protocols
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return res
+        .status(400)
+        .json({ error: "Only HTTP and HTTPS URLs are allowed" });
+    }
 
-  if (!response || !tradeId) {
-    return res.status(400).json({ error: "invalid body" });
-  }
+    try {
+      // Determine appropriate referer based on the domain
+      let referer = url.origin; // Default to the image's origin
 
-  try {
-    await controllers.respondTrade(userUID, response, tradeId);
-    return res.status(200).json({
-      message: response,
-    });
-  } catch (err: any) {
-    return res.status(400).json({ error: err.message });
+      if (
+        url.hostname.includes("wikia.nocookie.net") ||
+        url.hostname.includes("fandom.com")
+      ) {
+        // For Wikia/Fandom: extract wiki name from path
+        // URL format: https://static.wikia.nocookie.net/clashroyale/images/...
+        const pathParts = url.pathname.split("/").filter((p) => p);
+        if (pathParts.length > 0) {
+          const wikiName = pathParts[0];
+          referer = `https://${wikiName}.fandom.com/`;
+        } else {
+          referer = "https://www.fandom.com/";
+        }
+        // } else if (url.hostname.includes("wikipedia.org")) {
+        //   referer = `https://${url.hostname}/`;
+        // } else if (url.hostname.includes("wikimedia.org")) {
+        //   referer = "https://www.wikipedia.org/";
+        // } else {
+      } else {
+        // For other domains, use the origin as referer
+        referer = url.origin + "/";
+      }
+
+      // Build headers with more complete browser-like headers
+      const headers: Record<string, string> = {
+        Referer: referer,
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Sec-Fetch-Dest": "image",
+        "Sec-Fetch-Mode": "no-cors",
+        "Sec-Fetch-Site": "cross-site",
+      };
+
+      const response = await fetch(imageUrl, {
+        headers,
+        // Add redirect handling
+        redirect: "follow",
+      });
+
+      if (!response.ok) {
+        // Log more details for debugging
+        console.error(`Image proxy failed for ${imageUrl}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          referer: referer,
+        });
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+
+      const imageBuffer = await response.arrayBuffer();
+      const contentType = response.headers.get("content-type") || "image/png";
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 24 hours
+      res.send(Buffer.from(imageBuffer));
+    } catch (error: any) {
+      console.error("Error proxying image:", error);
+      // Return a more informative error
+      if (error.message.includes("Failed to fetch image")) {
+        res.status(502).json({
+          error: "Failed to fetch image from source",
+          details: error.message,
+        });
+      } else {
+        res.status(500).json({ error: "Failed to proxy image" });
+      }
+    }
+  } catch (error: any) {
+    console.error("Error in proxy-image route:", error);
+    res.status(500).json({ error: "Failed to process image proxy request" });
   }
 });
 

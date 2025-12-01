@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Set as SetType } from "../data/cards";
+import { proxyImageUrl } from "../../lib/utils";
 
 interface SetProps {
   set: SetType;
@@ -25,7 +26,7 @@ export default function Set({ set }: SetProps) {
           </div>
         ) : (
           <img
-            src={set.coverImage}
+            src={proxyImageUrl(set.coverImage)}
             alt={set.name}
             className="w-full h-full object-cover"
             onError={() => setImageError(true)}

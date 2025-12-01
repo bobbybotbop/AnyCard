@@ -19,8 +19,6 @@ import {
 import { v4 as uuidv4 } from "uuid";
 const { db, auth } = require("./firebase");
 
-const WIKIPEDIA_RATE_LIMIT_DELAY = 2000;
-
 export async function createDocument(collection: string, data: any) {
   try {
     const docRef = await db.collection(collection).add(data);
@@ -165,88 +163,125 @@ export async function getAllExistingThemes(): Promise<string[]> {
   }
 }
 
-// ============= WIKIPEDIA OPERATIONS =============
+// ============= SERPER API OPERATIONS =============
 
-interface WikipediaResult {
+interface SerperResult {
   title: string;
-  imageUrl: string | null;
+  imageUrls: string[];
 }
 
-export async function searchWikipedia(query: string): Promise<WikipediaResult> {
-  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
-    query
-  )}&format=json&origin=*`;
-  const searchResponse = await fetch(searchUrl);
-  const searchData = (await searchResponse.json()) as any;
+export async function getSerperImage(query: string): Promise<SerperResult> {
+  const serperApiKey = (process.env.SERPER_API_KEY || "").trim();
 
-  if (
-    !searchData.query ||
-    !searchData.query.search ||
-    searchData.query.search.length === 0
-  ) {
-    throw new Error("No results found");
+  if (!serperApiKey) {
+    throw new Error(
+      "Serper API key not configured. Please set SERPER_API_KEY environment variable."
+    );
   }
 
-  const firstResult = searchData.query.search[0];
-  const title = firstResult.title;
+  const serperUrl = "https://google.serper.dev/images";
 
-  let imageUrl: string | null = null;
-  const maxRetries = 3;
+  const headers: Record<string, string> = {
+    "X-API-KEY": serperApiKey,
+    "Content-Type": "application/json",
+  };
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-        title
-      )}`;
-      const summaryResponse = await fetch(summaryUrl);
-
-      if (summaryResponse.ok) {
-        const summaryData = (await summaryResponse.json()) as any;
-        imageUrl = summaryData.thumbnail?.source || null;
-        if (imageUrl) {
-          return {
-            title: summaryData.title || title,
-            imageUrl: imageUrl,
-          };
-        }
-      } else if (summaryResponse.status === 429) {
-        const waitTime = Math.pow(2, attempt) * 1000;
-        console.log("wiki call failed, waiting " + waitTime);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        continue;
-      }
-    } catch (error) {
-      if (attempt === maxRetries - 1) {
-        break;
-      }
-      const waitTime = Math.pow(2, attempt) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-    }
-  }
+  const payload = {
+    q: query,
+  };
 
   try {
-    const imagesUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(
-      title
-    )}&prop=pageimages&pithumbsize=500&format=json&origin=*`;
-    const imagesResponse = await fetch(imagesUrl);
+    const response = await fetch(serperUrl, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(payload),
+    });
 
-    if (imagesResponse.ok) {
-      const imagesData = (await imagesResponse.json()) as any;
-      const pages = imagesData.query?.pages;
-      if (pages) {
-        const pageId = Object.keys(pages)[0];
-        const page = pages[pageId];
-        if (page?.thumbnail?.source) {
-          imageUrl = page.thumbnail.source;
-        }
-      }
+    if (response.status === 429) {
+      console.log("Serper API rate limit exceeded. Please try again later.");
+      return {
+        title: query,
+        imageUrls: [],
+      };
     }
-  } catch (error) {}
 
-  return {
-    title: title,
-    imageUrl: imageUrl,
-  };
+    if (!response.ok) {
+      console.error(
+        `Serper API error: ${response.status} ${response.statusText}`
+      );
+      return {
+        title: query,
+        imageUrls: [],
+      };
+    }
+
+    const data = (await response.json()) as any;
+
+    // Parse all images from the images array (up to 10)
+    const images = data.images || [];
+    const imageUrls = images
+      .slice(0, 10)
+      .map((img: any) => img?.imageUrl)
+      .filter((url: string | undefined) => url != null);
+
+    return {
+      title: query,
+      imageUrls: imageUrls,
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching image from Serper API for "${query}":`,
+      error
+    );
+    return {
+      title: query,
+      imageUrls: [],
+    };
+  }
+}
+
+/**
+ * Tests if an image URL works through the proxy endpoint
+ * @param imageUrl - The image URL to test
+ * @returns true if the proxy returns 200, false otherwise
+ */
+async function testProxyImage(imageUrl: string): Promise<boolean> {
+  try {
+    const proxyUrl = `http://localhost:8080/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+
+    const response = await fetch(proxyUrl, {
+      method: "GET",
+    });
+
+    // Check status - 502 means Bad Gateway (proxy failed), 200 means success
+    return response.status === 200;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Finds the first working image from an array of image URLs by testing each through the proxy
+ * @param imageUrls - Array of image URLs to test
+ * @param cardName - Name of the card (for error logging)
+ * @returns The first working image URL, or null if all fail
+ */
+async function findWorkingImage(
+  imageUrls: string[],
+  cardName: string
+): Promise<string | null> {
+  for (const imageUrl of imageUrls) {
+    const works = await testProxyImage(imageUrl);
+    if (works) {
+      return imageUrl;
+    }
+  }
+
+  // All images failed
+  console.error(
+    `Proxy unsuccessful for all ${imageUrls.length} images for "${cardName}"`
+  );
+  return null;
 }
 
 interface OpenRouterResponse {
@@ -326,11 +361,17 @@ interface ParsedSetData {
 }
 
 export async function processSetData(parsedData: ParsedSetData): Promise<Set> {
-  console.log("!!finished calling openrouter, now calling wiki");
+  console.log("!!finished calling openrouter, now calling serper");
   let coverImage = "";
   try {
-    const themeResult = await searchWikipedia(parsedData.theme);
-    coverImage = themeResult.imageUrl || "";
+    const themeResult = await getSerperImage(parsedData.theme);
+    if (themeResult.imageUrls.length > 0) {
+      const workingImage = await findWorkingImage(
+        themeResult.imageUrls,
+        `theme: ${parsedData.theme}`
+      );
+      coverImage = workingImage || "";
+    }
   } catch (error) {
     console.error(
       `Failed to get cover image for theme "${parsedData.theme}":`,
@@ -343,17 +384,21 @@ export async function processSetData(parsedData: ParsedSetData): Promise<Set> {
     const card = parsedData.cards[i];
     let picture = "";
     try {
-      const cardResult = await searchWikipedia(card.name);
-      picture = cardResult.imageUrl || "doesNotExistOnWiki";
+      // Append theme to card query for better image results
+      const cardQuery = `${card.name} ${parsedData.theme}`;
+      const cardResult = await getSerperImage(cardQuery);
+      if (cardResult.imageUrls.length > 0) {
+        const workingImage = await findWorkingImage(
+          cardResult.imageUrls,
+          card.name
+        );
+        picture = workingImage || "doesNotExistOnSerper";
+      } else {
+        picture = "doesNotExistOnSerper";
+      }
     } catch (error) {
       console.error(`Failed to get image for card "${card.name}":`, error);
       picture = "cardNotFound";
-    }
-
-    if (i < parsedData.cards.length - 1) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, WIKIPEDIA_RATE_LIMIT_DELAY)
-      );
     }
 
     if (card.attacks.length !== 2) {
@@ -542,6 +587,21 @@ export async function getAllSets(): Promise<Set[]> {
   } catch (error) {
     throw error;
   }
+}
+
+export async function getCustomSetPrompt(themeInput: string): Promise<string> {
+  // Validate and trim input
+  const trimmedInput = themeInput.trim();
+  if (!trimmedInput || trimmedInput.length === 0) {
+    throw new Error("Theme input is required");
+  }
+  if (trimmedInput.length > 200) {
+    throw new Error("Theme input is too long (max 200 characters)");
+  }
+
+  // Generate custom prompt based on user input
+  const customPrompt = generateCustomSetPrompt(trimmedInput);
+  return customPrompt;
 }
 
 export async function createCustomSet(themeInput: string): Promise<Set> {

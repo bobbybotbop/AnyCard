@@ -49,18 +49,14 @@ export const getUserData = async (uid: string): Promise<userData> => {
   return response.json();
 };
 
-export interface WikipediaResult {
+export interface SerperResult {
   title: string;
   imageUrl: string | null;
 }
 
-export const searchWikipedia = async (
-  query: string
-): Promise<WikipediaResult> => {
+export const searchSerper = async (query: string): Promise<SerperResult> => {
   const response = await fetch(
-    `${BACKEND_BASE_PATH}/api/searchWikipedia?query=${encodeURIComponent(
-      query
-    )}`,
+    `${BACKEND_BASE_PATH}/api/serperSearch?query=${encodeURIComponent(query)}`,
     {
       method: "GET",
     }
@@ -68,7 +64,7 @@ export const searchWikipedia = async (
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Failed to search Wikipedia");
+    throw new Error(error.error || "Failed to search Serper API");
   }
 
   return response.json();
@@ -187,6 +183,26 @@ export const openPack = async (
   }
 
   return response.json();
+};
+
+export const getCustomSetPrompt = async (
+  themeInput: string
+): Promise<string> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getCustomSetPrompt`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ themeInput }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get custom set prompt");
+  }
+
+  const data = await response.json();
+  return data.prompt;
 };
 
 export const createCustomSet = async (themeInput: string): Promise<Set> => {

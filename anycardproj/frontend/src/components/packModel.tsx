@@ -4,6 +4,7 @@ import { OrbitControls, useGLTF, Environment } from "@react-three/drei";
 import type { Texture, Material } from "three";
 import CardDrawings from "./CardDrawings";
 import { Card as CardType } from "@full-stack/types";
+import { proxyImageUrl } from "../../lib/utils";
 import {
   Mesh,
   TextureLoader,
@@ -518,7 +519,7 @@ async function compositeTextures(
 
     // Start loading images
     baseImage.src = diffuseTextureUrl;
-    overlayImage.src = overlayImageUrl;
+    overlayImage.src = proxyImageUrl(overlayImageUrl);
   });
 }
 

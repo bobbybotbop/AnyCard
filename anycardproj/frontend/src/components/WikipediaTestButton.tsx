@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import {
-  searchWikipedia,
+  searchSerper,
   callOpenRouter,
   createRandomSet,
   createDailyPacks,
+  getCustomSetPrompt,
 } from "../api/cards";
 
 const WikipediaTestButton: React.FC = () => {
@@ -15,13 +16,16 @@ const WikipediaTestButton: React.FC = () => {
   const [openRouterLoading, setOpenRouterLoading] = useState(false);
   const [randomSetLoading, setRandomSetLoading] = useState(false);
   const [dailyPacksLoading, setDailyPacksLoading] = useState(false);
+  const [customPromptInput, setCustomPromptInput] = useState("space");
+  const [customPromptLoading, setCustomPromptLoading] = useState(false);
 
   const handleSearch = async () => {
     setLoading(true);
     try {
-      await searchWikipedia(query);
+      const result = await searchSerper(query);
+      console.log("Serper API result:", result);
     } catch (error) {
-      console.error("Error searching Wikipedia:", error);
+      console.error("Error searching Serper API:", error);
     } finally {
       setLoading(false);
     }
@@ -60,6 +64,18 @@ const WikipediaTestButton: React.FC = () => {
     }
   };
 
+  const handleGetCustomPrompt = async () => {
+    setCustomPromptLoading(true);
+    try {
+      const prompt = await getCustomSetPrompt(customPromptInput);
+      console.log("Generated Custom Set Prompt:", prompt);
+    } catch (error) {
+      console.error("Error getting custom set prompt:", error);
+    } finally {
+      setCustomPromptLoading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -71,7 +87,7 @@ const WikipediaTestButton: React.FC = () => {
     >
       <h3>API Test Components</h3>
 
-      {/* Wikipedia Test */}
+      {/* Serper API Test */}
       <div
         style={{
           marginBottom: "30px",
@@ -79,7 +95,7 @@ const WikipediaTestButton: React.FC = () => {
           borderBottom: "1px solid #eee",
         }}
       >
-        <h4 style={{ marginBottom: "10px" }}>Wikipedia Search Test</h4>
+        <h4 style={{ marginBottom: "10px" }}>Serper API Image Search Test</h4>
         <div style={{ marginBottom: "10px" }}>
           <input
             type="text"
@@ -100,7 +116,7 @@ const WikipediaTestButton: React.FC = () => {
               cursor: loading ? "not-allowed" : "pointer",
             }}
           >
-            {loading ? "Searching..." : "Search Wikipedia"}
+            {loading ? "Searching..." : "Search Serper API"}
           </button>
         </div>
       </div>
@@ -169,7 +185,13 @@ const WikipediaTestButton: React.FC = () => {
       </div>
 
       {/* Create Daily Packs Test */}
-      <div>
+      <div
+        style={{
+          marginBottom: "30px",
+          paddingBottom: "20px",
+          borderBottom: "1px solid #eee",
+        }}
+      >
         <h4 style={{ marginBottom: "10px" }}>Create Daily Packs Test</h4>
         <div style={{ marginBottom: "10px" }}>
           <button
@@ -187,6 +209,34 @@ const WikipediaTestButton: React.FC = () => {
             {dailyPacksLoading
               ? "Generating..."
               : "Create Daily Packs (3 Sets)"}
+          </button>
+        </div>
+      </div>
+
+      {/* Get Custom Set Prompt Test */}
+      <div>
+        <h4 style={{ marginBottom: "10px" }}>Get Custom Set Prompt Test</h4>
+        <div style={{ marginBottom: "10px" }}>
+          <input
+            type="text"
+            value={customPromptInput}
+            onChange={(e) => setCustomPromptInput(e.target.value)}
+            placeholder="Enter theme input (e.g., 'space', 'animals')"
+            style={{ padding: "8px", marginRight: "10px", width: "300px" }}
+          />
+          <button
+            onClick={handleGetCustomPrompt}
+            disabled={customPromptLoading}
+            style={{
+              padding: "8px 16px",
+              backgroundColor: "#9b59b6",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: customPromptLoading ? "not-allowed" : "pointer",
+            }}
+          >
+            {customPromptLoading ? "Generating..." : "Get Custom Prompt"}
           </button>
         </div>
       </div>

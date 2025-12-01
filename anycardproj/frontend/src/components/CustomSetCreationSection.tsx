@@ -74,7 +74,7 @@ const CustomSetCreationSection = ({
                 setCreateSetSuccess(null);
               }}
               placeholder="Enter a card theme idea!"
-              className="w-full !px-6 !pr-14 text-lg !border-1 !shadow-xl !border-white/30 !bg-blue-400/30 !rounded-4xl h-14 focus:outline-none focus:border-blue-500 backdrop-blur-sm !text-white/90  placeholder:text-white/90"
+              className="w-full !px-6 !pr-14 text-lg !border-2 !shadow-xl !border-white/30 !bg-blue-400/30 !rounded-4xl h-14 focus:outline-none focus:border-blue-500 backdrop-blur-sm !text-white/90  placeholder:text-white/90"
               disabled={isCreatingSet}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !isCreatingSet) {
