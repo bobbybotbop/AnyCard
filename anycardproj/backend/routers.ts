@@ -211,4 +211,39 @@ router.post("/api/saveFavoriteCard/:userUid", async (req, res) => {
   }
 });
 
+router.post("/api/createCustomSet", async (req, res) => {
+  try {
+    const { themeInput } = req.body;
+
+    if (!themeInput || typeof themeInput !== "string") {
+      res.status(400).json({ error: "themeInput parameter is required" });
+      return;
+    }
+
+    const result = await controllers.createCustomSet(themeInput);
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in createCustomSet", error);
+    if (error.message === "Theme input is required" || error.message === "Theme input is too long (max 200 characters)") {
+      res.status(400).json({ error: error.message });
+    } else if (error.message === "No results found") {
+      res.status(404).json({ error: error.message });
+    } else if (error.message.includes("API key not configured")) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: "Failed to create custom set" });
+    }
+  }
+});
+
+router.get("/api/getAllCustomSets", async (req, res) => {
+  try {
+    const result = await controllers.getAllCustomSets();
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in getAllCustomSets", error);
+    res.status(500).json({ error: "Failed to get custom sets" });
+  }
+});
+
 export default router;

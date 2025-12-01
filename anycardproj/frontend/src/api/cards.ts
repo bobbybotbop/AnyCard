@@ -188,3 +188,33 @@ export const openPack = async (
 
   return response.json();
 };
+
+export const createCustomSet = async (themeInput: string): Promise<Set> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/createCustomSet`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ themeInput }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create custom set");
+  }
+
+  return response.json();
+};
+
+export const getAllCustomSets = async (): Promise<Set[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllCustomSets`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get custom sets");
+  }
+
+  return response.json();
+};

@@ -10,6 +10,7 @@ import fetch from "node-fetch";
 import {
   generateRandomCardSetPrompt,
   generatePromptWithExclusions,
+  generateCustomSetPrompt,
 } from "./prompts";
 const { db, auth } = require("./firebase");
 
@@ -513,6 +514,62 @@ export async function getDailyPacks(): Promise<Set[]> {
 export async function getAllSets(): Promise<Set[]> {
   try {
     const snapshot = await db.collection("cards").get();
+    const sets: Set[] = [];
+
+    snapshot.forEach((doc: any) => {
+      const data = doc.data();
+      sets.push(data as Set);
+    });
+
+    return sets;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function createCustomSet(themeInput: string): Promise<Set> {
+  // Validate and trim input
+  const trimmedInput = themeInput.trim();
+  if (!trimmedInput || trimmedInput.length === 0) {
+    throw new Error("Theme input is required");
+  }
+  if (trimmedInput.length > 200) {
+    throw new Error("Theme input is too long (max 200 characters)");
+  }
+
+  // Generate custom prompt based on user input
+  const customPrompt = generateCustomSetPrompt(trimmedInput);
+
+  // Use the same flow as createRandomSet but with custom prompt and customSets collection
+  const result = await callOpenRouter(customPrompt);
+  if (!result || !result.choices || result.choices.length === 0) {
+    throw new Error("No response received from OpenRouter API");
+  }
+
+  const content = result.choices[0].message?.content;
+  if (!content) {
+    throw new Error("No content in OpenRouter API response");
+  }
+
+  try {
+    const parsedData: ParsedSetData = JSON.parse(content);
+    const setObject = await processSetData(parsedData);
+    await createDocumentWithId("customSets", setObject.name, setObject);
+    console.log("Custom set created:", setObject);
+    return setObject;
+  } catch (error) {
+    console.error("Failed to parse JSON response:", error);
+    throw new Error(
+      `Failed to parse JSON response: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+export async function getAllCustomSets(): Promise<Set[]> {
+  try {
+    const snapshot = await db.collection("customSets").get();
     const sets: Set[] = [];
 
     snapshot.forEach((doc: any) => {
