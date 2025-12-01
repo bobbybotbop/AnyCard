@@ -5,6 +5,10 @@ import {
   Card,
   Rarity,
   Attack,
+  Status,
+  MyResponse,
+  sentUser,
+  requestUser,
 } from "@full-stack/types";
 import fetch from "node-fetch";
 import {
@@ -12,11 +16,10 @@ import {
   generatePromptWithExclusions,
   generateCustomSetPrompt,
 } from "./prompts";
+import { v4 as uuidv4 } from "uuid";
 const { db, auth } = require("./firebase");
 
 const WIKIPEDIA_RATE_LIMIT_DELAY = 2000;
-
-// ============= DATABASE OPERATIONS =============
 
 export async function createDocument(collection: string, data: any) {
   try {
@@ -70,7 +73,27 @@ export async function getUserData(uid: string): Promise<userData | null> {
       level: data?.level || 0,
       cards: data?.cards || [],
       favoriteCards: data?.favoriteCards || [],
+      sentTrade: data?.sentTrade || [],
+      requestedTrade: data?.requestTrade || [],
     };
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function getAllUsers(uid: string): Promise<userData[] | null> {
+  try {
+    const usersSnapshot = await db.collection("users").get();
+
+    const allUsers: userData[] = usersSnapshot.docs.map(
+      (doc: { data: () => userData }) => {
+        const data = doc.data() as userData;
+        return { ...data };
+      }
+    );
+
+    const finalList = allUsers.filter((u) => u.UID !== uid);
+    return finalList;
   } catch (error) {
     throw error;
   }
@@ -218,17 +241,13 @@ export async function searchWikipedia(query: string): Promise<WikipediaResult> {
         }
       }
     }
-  } catch (error) {
-    // Ignore errors
-  }
+  } catch (error) {}
 
   return {
     title: title,
     imageUrl: imageUrl,
   };
 }
-
-// ============= OPENROUTER OPERATIONS =============
 
 interface OpenRouterResponse {
   id?: string;
@@ -294,8 +313,6 @@ export async function callOpenRouter(
   const data = await response.json();
   return data;
 }
-
-// ============= CARD SET OPERATIONS =============
 
 interface ParsedSetData {
   theme: string;
@@ -660,4 +677,154 @@ export async function saveFavoritePack(userUid: string, card: Card) {
   return {
     message: `Successfuly saved favorite card`,
   };
+}
+
+export async function requestTrade(
+  userUID: string,
+  sentUserUID: string,
+  wantedCard: Card,
+  givenCard: Card
+): Promise<void> {
+  const userData = await getUserData(userUID);
+  const sentUserData = await getUserData(sentUserUID);
+
+  const tradeId = uuidv4();
+
+  if (!userData || !sentUserData)
+    throw new Error("User or sent User not found");
+  let sentTrades: sentUser[] = [];
+  const sendTrade: sentUser = {
+    tradeId: tradeId,
+    sentUserUID: userUID,
+    wantedCard: wantedCard,
+    givenCard: givenCard,
+    status: "pending",
+  };
+
+  if (userData.sentTrade && userData.sentTrade.length > 0) {
+    const hasUsedCard = userData.sentTrade.some(
+      (t) => t.givenCard.name === givenCard.name
+    );
+
+    if (hasUsedCard) {
+      throw Error("Card is already in use for another trade");
+    }
+
+    sentTrades = [...userData.sentTrade, sendTrade];
+  } else {
+    sentTrades = [sendTrade];
+  }
+
+  const sentTradeData = { sentTrade: sentTrades };
+
+  let reqTrades: requestUser[] = [];
+  const requestTrade: requestUser = {
+    tradeId: tradeId,
+    requestedUserUID: sentUserUID,
+    wantedCard: givenCard,
+    givenCard: wantedCard,
+    status: "pending",
+  };
+
+  if (sentUserData.requestedTrade && sentUserData.requestedTrade.length > 0) {
+    reqTrades = [...sentUserData.requestedTrade, requestTrade];
+  } else {
+    reqTrades = [requestTrade];
+  }
+
+  const reqTradedata = { requestedTrade: reqTrades };
+
+  const isUserSet = await setUserData(userUID, sentTradeData);
+  const isSentUserSet = await setUserData(sentUserUID, reqTradedata);
+
+  if (!isUserSet) {
+    if (!isSentUserSet) {
+      throw new Error("Trade cannot be made");
+    }
+
+    throw new Error(" Sent User is set but User is not. That is NOT good");
+  }
+
+  if (!isSentUserSet) {
+    throw new Error("User is set but sent user is not. That is NOT good");
+  }
+}
+
+export async function respondTrade(
+  userUID: string,
+  response: MyResponse,
+  tradeId: string
+): Promise<void> {
+  const userData = await getUserData(userUID);
+  const reqUserData = await getReqUserData(userData, tradeId);
+
+  if (!userData || !reqUserData) throw new Error("User or sent User not found");
+
+  if (!userData.requestedTrade || !reqUserData.sentTrade) {
+    throw new Error("Invalid requested user or sent user");
+  }
+
+  let reqUser = reqUserData.sentTrade.find((u) => u.tradeId === tradeId);
+  if (!reqUser) throw new Error("User never wanted card?!");
+  reqUser.status = response;
+
+  if (response === "accepted") {
+    const index = userData.cards.findIndex((u) => u === reqUser.givenCard);
+    if (index !== -1) {
+      userData.cards.splice(index, 1);
+    } else {
+      throw new Error("User never had the card to start off with");
+    }
+    userData.cards.push(reqUser.wantedCard);
+
+    const index2 = reqUserData.cards.findIndex((u) => u === reqUser.wantedCard);
+    if (index2 !== -1) {
+      reqUserData.cards.splice(index2, 1);
+    } else {
+      throw new Error("Requested User never had the card");
+    }
+    reqUserData.cards.push(reqUser.givenCard);
+  } else if (response === "rejected") {
+    reqUser.status = "rejected";
+  }
+
+  userData.requestedTrade = userData.requestedTrade.filter(
+    (u) => u.tradeId !== tradeId
+  );
+}
+
+export async function getReqUserData(
+  data: userData | null,
+  tradeId: string
+): Promise<userData | null> {
+  if (!data) return null;
+
+  const reqUser = (data.requestedTrade as requestUser[]).find(
+    (u) => u.tradeId === tradeId
+  );
+
+  if (!reqUser?.requestedUserUID) return null;
+
+  try {
+    const reqUserDoc = await db
+      .collection("users")
+      .doc(reqUser.requestedUserUID)
+      .get();
+
+    const reqUserData = reqUserDoc.data();
+
+    return {
+      UID: reqUser.requestedUserUID,
+      username: data?.username || "",
+      email: data?.email || "",
+      createdAt: data?.createdAt || "",
+      level: data?.level || 0,
+      cards: data?.cards || [],
+      favoriteCards: data?.favoriteCards || [],
+      sentTrade: data?.sentTrade || [],
+      requestedTrade: data?.requestedTrade || [],
+    };
+  } catch {
+    return null;
+  }
 }

@@ -42,6 +42,27 @@ router.get("/api/getUserData/:uid", async (req, res) => {
   }
 });
 
+router.get("/api/getAllUsers/:uid", async (req, res) => {
+  try {
+    const { uid } = req.params;
+    const users = await controllers.getAllUsers(uid);
+
+    if (!users) {
+      res.status(200).json({
+        error: "Something happened",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      users,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to fetch all users" });
+  }
+});
+
 router.get("/api/getUserInventory/:userUid", async (req, res) => {
   const { userUid } = req.params;
   if (!userUid) return res.status(400).json({ error: "user not given" });
@@ -243,6 +264,51 @@ router.get("/api/getAllCustomSets", async (req, res) => {
   } catch (error: any) {
     console.error("Error in getAllCustomSets", error);
     res.status(500).json({ error: "Failed to get custom sets" });
+  }
+});
+
+router.post("/api/requestTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { sentUserUID, wantedCard, givenCard } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!sentUserUID || !wantedCard || !givenCard) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+
+  try {
+    await controllers.requestTrade(userUID, sentUserUID, wantedCard, givenCard);
+
+    return res.status(200).json({
+      message: "Trade successfully started",
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete("/api/respondTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { tradeId, response } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!response || !tradeId) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+
+  try {
+    await controllers.respondTrade(userUID, response, tradeId);
+    return res.status(200).json({
+      message: response,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
   }
 });
 
