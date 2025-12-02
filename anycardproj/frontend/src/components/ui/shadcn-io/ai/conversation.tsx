@@ -21,20 +21,25 @@ export const Conversation = ({
   children,
   ...props
 }: ConversationProps) => {
+  const StickToBottomComponent = StickToBottom as React.ComponentType<{
+    initial?: boolean;
+    resize?: boolean;
+    role?: string;
+    children?: React.ReactNode;
+  }>;
+
   return (
     <div
       className={cn("relative flex-1 overflow-y-auto", className)}
       {...props}
     >
-      <StickToBottom
-        {...({
-          initial: initial === "smooth" ? true : false,
-          resize: resize === "smooth" ? true : false,
-          role,
-        } as any)}
+      <StickToBottomComponent
+        initial={initial === "smooth" ? true : false}
+        resize={resize === "smooth" ? true : false}
+        role={role}
       >
         {children}
-      </StickToBottom>
+      </StickToBottomComponent>
     </div>
   );
 };

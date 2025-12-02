@@ -2,7 +2,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/lib/*": ["./lib/*"],
+      "@/components/*": ["./components/*", "./src/components/*"],
+      "@/*": ["./*", "./src/*"]
     },
     "target": "ES2020",
     "useDefineForClassFields": true,
