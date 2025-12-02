@@ -1,25 +1,37 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { ArrowDownIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
-import { useCallback } from 'react';
-import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ArrowDownIcon } from "lucide-react";
+import type { ComponentProps } from "react";
+import React, { useCallback } from "react";
+import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
 export type ConversationProps = React.HTMLAttributes<HTMLDivElement> & {
-  initial?: "smooth" | "instant"
-  resize?: "smooth" | "instant"
-  role?: string
-}
+  initial?: "smooth" | "instant";
+  resize?: "smooth" | "instant";
+  role?: string;
+};
 
-export const Conversation = ({ className, initial = "smooth", resize = "smooth", role = "log", children, ...props }: ConversationProps) => {
+export const Conversation = ({
+  className,
+  initial = "smooth",
+  resize = "smooth",
+  role = "log",
+  children,
+  ...props
+}: ConversationProps) => {
   return (
-    <div className={cn('relative flex-1 overflow-y-auto', className)} {...props}>
+    <div
+      className={cn("relative flex-1 overflow-y-auto", className)}
+      {...props}
+    >
       <StickToBottom
-        initial={initial}
-        resize={resize}
-        role={role}
+        {...({
+          initial: initial === "smooth" ? true : false,
+          resize: resize === "smooth" ? true : false,
+          role,
+        } as any)}
       >
         {children}
       </StickToBottom>
@@ -34,11 +46,12 @@ export const ConversationContent = ({
   children,
   ...props
 }: ConversationContentProps) => {
+  const Content = StickToBottom.Content as React.ComponentType<{
+    children?: React.ReactNode;
+  }>;
   return (
-    <div className={cn('p-4', className)} {...props}>
-      <StickToBottom.Content>
-        {children}
-      </StickToBottom.Content>
+    <div className={cn("p-4", className)} {...props}>
+      <Content>{children}</Content>
     </div>
   );
 };
@@ -59,7 +72,7 @@ export const ConversationScrollButton = ({
     !isAtBottom && (
       <Button
         className={cn(
-          'absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full',
+          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full",
           className
         )}
         onClick={handleScrollToBottom}

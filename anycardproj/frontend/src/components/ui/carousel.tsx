@@ -68,7 +68,7 @@ const CarouselItem = React.forwardRef<
   ComponentProps<"div">
 >(({ className, ...props }, ref) => (
   <MantineCarousel.Slide
-    ref={ref}
+    ref={ref as React.Ref<HTMLDivElement>}
     className={cn("min-w-0 shrink-0", className)}
     {...props}
   />

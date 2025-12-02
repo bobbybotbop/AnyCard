@@ -23,10 +23,6 @@ export const signin = async () => {
 
     return { token, user };
   } catch (error: any) {
-    const code = error.code;
-    const message = error.message;
-    const email = error.customData?.email;
-
     // Re-throw the error so the calling code can handle it
     throw error;
   }
