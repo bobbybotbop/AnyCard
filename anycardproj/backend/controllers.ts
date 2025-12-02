@@ -84,14 +84,10 @@ export async function getUserData(uid: string): Promise<userData | null> {
 export async function getAllUsers(uid: string): Promise<userData[] | null> {
   try {
     const usersSnapshot = await db.collection("users").get();
-
-    const allUsers: userData[] = usersSnapshot.docs.map(
-      (doc: { data: () => userData }) => {
-        const data = doc.data() as userData;
-        return { ...data };
-      }
-    );
-
+    const allUsers: userData[] = usersSnapshot.docs.map((doc: any) => ({
+      ...(doc.data() as userData),
+      UID: doc.id,
+    }));
     const finalList = allUsers.filter((u) => u.UID !== uid);
     return finalList;
   } catch (error) {
@@ -140,10 +136,12 @@ export async function getAllTrades(uid: string) {
   if (!userData) throw Error("User not found!");
 
   let reqAndSent: (requestUser | sentUser)[] = [];
-
+  console.log(userData.requestedTrade?.length);
   if (userData.requestedTrade) reqAndSent = [...userData.requestedTrade];
+  console.log(userData.username);
 
   if (userData.sentTrade) reqAndSent = [...reqAndSent, ...userData.sentTrade];
+  console.log(reqAndSent);
 
   return reqAndSent.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

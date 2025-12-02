@@ -45,18 +45,16 @@ router.get("/api/getUserData/:uid", async (req, res) => {
 router.get("/api/getAllUsers/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const users = await controllers.getAllUsers(uid);
+    const result = await controllers.getAllUsers(uid);
 
-    if (!users) {
+    if (!result) {
       res.status(200).json({
         error: "Something happened",
       });
       return;
     }
 
-    res.status(200).json({
-      users,
-    });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Failed to fetch all users" });

@@ -14,29 +14,21 @@ export default function RequestTradeMail({ mail, userUid }: InputProps) {
   const otherUid = isSentUser(mail) ? mail.sentUserUID : mail.requestedUserUID;
 
   function handleDecline(): void {
-    respondTrade("rejected", userUid);
+    respondTrade("rejected", userUid, mail.tradeId);
   }
 
   function handleAccept(): void {
-    respondTrade("accepted", userUid);
+    respondTrade("accepted", userUid, mail.tradeId);
   }
 
   return (
     <div className="relative p-2 border rounded pb-16">
-      {mail.type === "requestUser" ? (
+      {mail.type === "sentUser" ? (
         // Layout for requestUser
         <>
-          <p className="font-semibold">Request</p>
+          <p className="font-semibold">Sent Requests</p>
           <p className="text-sm">Other user UID: {otherUid}</p>
           <p className="text-sm">Wanted: {mail.wantedCard?.name}</p>
-          <p className="text-sm">Status: {mail.status}</p>
-        </>
-      ) : (
-        // Layout for other types
-        <>
-          <p className="font-semibold">Sent Request</p>
-          <p className="text-sm">Other user UID: {otherUid}</p>
-          <p className="text-sm">Given: {mail.givenCard?.name}</p>
           {/* Bottom buttons */}
           <div className="absolute bottom-2 left-2 right-2 flex justify-between">
             <button
@@ -52,6 +44,14 @@ export default function RequestTradeMail({ mail, userUid }: InputProps) {
               Decline
             </button>
           </div>
+        </>
+      ) : (
+        // Layout for other types
+        <>
+          <p className="font-semibold">Requests</p>
+          <p className="text-sm">Other user UID: {otherUid}</p>
+          <p className="text-sm">Given: {mail.givenCard?.name}</p>
+          <p className="text-sm">Status: {mail.status}</p>
         </>
       )}
       <p className="text-xs text-gray-500">

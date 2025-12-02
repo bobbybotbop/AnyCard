@@ -49,6 +49,7 @@ export default function InboxDisplay({ uid }: InputProps) {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">User Inbox</h2>
+      <p>{trades.length}</p>
       <div className="space-y-4">
         {trades.map((trade) => (
           <RequestTradeMail mail={trade} userUid={uid} />

@@ -242,17 +242,28 @@ export const getAllTrades = async (
 };
 
 export const respondTrade = async (
-  res: MyResponse,
-  uid: string
+  response: MyResponse,
+  userUid: string,
+  tradeId: string
 ): Promise<void> => {
-  console.log("HEY");
-  const response = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${uid}`, {
+  const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
     method: "DELETE",
-    body: JSON.stringify(res),
+    body: JSON.stringify({ tradeId, response }),
   });
-  console.log(response.ok);
-  if (!response.ok) {
-    const error = await response.json();
+  if (!a.ok) {
+    const error = await a.json();
     throw new Error(error.error || "Response failed");
   }
+};
+
+export const getAllUsers = async (uid: string): Promise<userData[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllUsers/${uid}`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get all users");
+  }
+
+  return response.json();
 };
