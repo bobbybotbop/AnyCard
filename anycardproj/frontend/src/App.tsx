@@ -27,7 +27,7 @@ const router = createBrowserRouter([
         };
       }),
       {
-        path: "/trading/:uid",
+        path: "/trading/:userUID/:otherUID",
         element: <TradingOther />,
       },
     ],

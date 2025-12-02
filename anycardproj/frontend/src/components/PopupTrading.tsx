@@ -1,0 +1,99 @@
+import { Card, MyResponse } from "@full-stack/types";
+import { useNavigate } from "react-router-dom";
+import CardComponet from "../components/Card";
+
+interface PopupProps {
+  open: boolean;
+  onClose: () => void;
+  userUID: string;
+  sentUserUID: string;
+  wantCard: Card | null;
+  giveCard: Card | null;
+}
+
+const PopupTrading = ({
+  open,
+  wantCard,
+  giveCard,
+  userUID,
+  sentUserUID,
+  onClose,
+}: PopupProps) => {
+  const navigate = useNavigate();
+  if (!open) return null;
+
+  function onInitiateTrade(res: MyResponse) {
+    if (res == "accepted") {
+      console.log("accepted");
+    } else {
+      console.log("rejected");
+    }
+
+    onClose();
+    navigate(`/trading`);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white w-[90%] max-w-lg rounded-xl shadow-xl p-6 relative">
+        {/* X button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
+        >
+          ×
+        </button>
+
+        <h2 className="text-2xl font-bold text-center mb-4">Confirm Trade</h2>
+
+        <div className="flex items-center justify-between p-4">
+          {/* Want Card */}
+          <div className="flex-shrink-0">
+            {wantCard ? (
+              <CardComponet card={wantCard} />
+            ) : (
+              <p className="text-center text-gray-400">Pick Card</p>
+            )}
+          </div>
+
+          {/* Trade Icon */}
+          <div className="text-4xl font-bold text-blue-500">⇄</div>
+
+          {/* Give Card */}
+          <div className="flex-shrink-0">
+            {giveCard ? (
+              <CardComponet card={giveCard} />
+            ) : (
+              // add card component
+              <p className="text-center text-gray-400">Pick Card</p>
+            )}
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="mt-6 flex justify-between gap-4">
+          <button
+            onClick={() => onInitiateTrade("accepted")}
+            disabled={!wantCard || !giveCard}
+            className={`w-1/2 py-2 rounded-lg font-semibold text-white ${
+              wantCard && giveCard
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
+          >
+            Initiate Trade
+          </button>
+
+          <button
+            onClick={() => onInitiateTrade("rejected")}
+            className="w-1/2 py-2 rounded-lg font-semibold bg-red-500 text-white hover:bg-red-600"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PopupTrading;

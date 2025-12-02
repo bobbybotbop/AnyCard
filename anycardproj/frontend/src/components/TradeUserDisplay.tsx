@@ -3,31 +3,36 @@ import { userData, Card } from "@full-stack/types";
 import { useNavigate } from "react-router-dom";
 
 interface TradeUserDisplayProps {
-  user: userData;
+  currentUser: userData;
+  otherUser: userData;
 }
 
-export default function TradeUserDisplay({ user }: TradeUserDisplayProps) {
+export default function TradeUserDisplay({
+  currentUser,
+  otherUser,
+}: TradeUserDisplayProps) {
   const [selectedUser, setSelectedUser] = useState<userData | null>(null);
   const navigate = useNavigate();
 
   const handleCardClick = (user: userData) => {
     setSelectedUser(user);
     console.log("Selected user:", user);
-    const uid = user.UID;
-    navigate(`/trading/${uid}`);
+    const otherUID = user.UID;
+    const userUID = currentUser.UID;
+    navigate(`/trading/${userUID}/${otherUID}`);
   };
 
   // Get first 3 cards
-  const displayedCards = (user.cards || []).slice(0, 3);
+  const displayedCards = (otherUser.cards || []).slice(0, 3);
 
   return (
     <div className="p-4">
       <div
-        onClick={() => handleCardClick(user)}
+        onClick={() => handleCardClick(otherUser)}
         className="cursor-pointer p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow mb-6"
       >
-        <h3 className="text-lg font-semibold">{user.username}</h3>
-        <p className="text-sm text-gray-600">{user.email}</p>
+        <h3 className="text-lg font-semibold">{otherUser.username}</h3>
+        <p className="text-sm text-gray-600">{otherUser.email}</p>
 
         {displayedCards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

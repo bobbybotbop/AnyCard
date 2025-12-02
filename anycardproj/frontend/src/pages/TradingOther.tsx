@@ -3,43 +3,66 @@ import { userData, Card } from "@full-stack/types";
 import { getUserData } from "../api/cards";
 import { useParams } from "react-router-dom";
 import CardComponent from "../components/Card";
-import CardDrawings from "../components/CardDrawings";
+import PopupTrading from "../components/PopupTrading";
+
+type State = "Want" | "Give";
 
 const TradingOther = () => {
-  const { uid } = useParams<{ uid: string }>();
-  const [user, setUser] = useState<userData | null>(null);
+  const { userUID, otherUID } = useParams();
+  const [currentUser, setCurrentUser] = useState<userData | null>(null);
+  const [otherUser, setOtherUser] = useState<userData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [userWantCard, setUserWantCard] = useState<Card | null>(null);
+  const [userGivenCard, setUserGivenCard] = useState<Card | null>(null);
+  const [currentSelection, setCurrentSelection] = useState<State>("Want");
+  const [popupOpen, setPopupOpen] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!uid) {
-        setError("User Data does not exist");
+    const fetchUsers = async () => {
+      if (!otherUID) {
+        setError("Other User Data does not exist");
         setLoading(false);
         return;
       }
+
+      if (!userUID) {
+        setError("Current User Data does not exist");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
-        const userData = await getUserData(uid);
-        setUser(userData);
+        const otherUserData = await getUserData(otherUID);
+        setOtherUser(otherUserData);
+
+        const currentUserData = await getUserData(userUID);
+        setCurrentUser(currentUserData);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to fetch user data"
+          err instanceof Error ? err.message : "Failed to fetch other user data"
         );
-        console.error("Error fetching user data:", err);
+        console.error("Error fetching other user data:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
-  }, [uid]);
+    fetchUsers();
+  }, [userUID, otherUID]);
 
   const handleCardClick = (card: Card) => {
-    setSelectedCard(card);
-    console.log("Selected card:", card);
+    if (currentSelection == "Want") {
+      setCurrentSelection("Give");
+      setUserWantCard(card);
+      console.log("User wanted card:", card);
+    } else {
+      setUserGivenCard(card);
+      setPopupOpen(true);
+      console.log("User given card:", card);
+    }
   };
 
   if (loading) {
@@ -58,14 +81,23 @@ const TradingOther = () => {
     );
   }
 
-  if (!user) {
+  if (!otherUser) {
     return (
       <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
-        <div className="text-xl">User not found</div>
+        <div className="text-xl">Other user not found</div>
       </div>
     );
   }
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
+        <div className="text-xl">Current user not found</div>
+      </div>
+    );
+  }
+
+  const user = currentSelection == "Want" ? otherUser : currentUser;
   return (
     <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white">
       <div className="w-[90%] mx-auto">
@@ -95,6 +127,14 @@ const TradingOther = () => {
           </div>
         )}
       </div>
+      <PopupTrading
+        open={popupOpen}
+        onClose={() => setPopupOpen(false)}
+        wantCard={userWantCard}
+        giveCard={userGivenCard}
+        userUID={currentUser.UID}
+        sentUserUID={otherUser.UID}
+      />
     </div>
   );
 };

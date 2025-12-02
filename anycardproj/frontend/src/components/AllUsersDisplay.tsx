@@ -1,5 +1,5 @@
 import { userData } from "@full-stack/types";
-import { getAllUsers } from "../api/cards";
+import { getAllUsers, getUserData } from "../api/cards";
 import TradeUserDisplay from "../components/TradeUserDisplay";
 import { useEffect, useState } from "react";
 
@@ -9,6 +9,7 @@ interface AllUsersDisplayProps {
 
 export default function AllUsersDisplay({ uid }: AllUsersDisplayProps) {
   const [users, setUsers] = useState<userData[]>();
+  const [currentUser, setCurrentUser] = useState<userData>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,8 +19,11 @@ export default function AllUsersDisplay({ uid }: AllUsersDisplayProps) {
         setLoading(true);
         setError(null);
 
-        const userData = await getAllUsers(uid);
-        setUsers(userData);
+        const allUsersData = await getAllUsers(uid);
+        setUsers(allUsersData);
+
+        const userData = await getUserData(uid);
+        setCurrentUser(userData);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch user data"
@@ -44,12 +48,15 @@ export default function AllUsersDisplay({ uid }: AllUsersDisplayProps) {
   if (!users) {
     return <div className="p-4">No users found</div>;
   }
+  if (!currentUser) {
+    return <div className="p-4">Current user not found</div>;
+  }
 
   return (
     <div>
       <h1>User ID: {uid}</h1>
       {users.map((user) => (
-        <TradeUserDisplay user={user} />
+        <TradeUserDisplay otherUser={user} currentUser={currentUser} />
       ))}
     </div>
   );
