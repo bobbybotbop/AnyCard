@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Home, User, Package, ArrowLeftRight } from "lucide-react";
 import { useState, useEffect } from "react";
-import anyCardLogo from "../../public/anyCardLogo.png";
+import anyCardLogo from "/anyCardLogo.png?url";
 
 interface HeaderSimpleProps {
   links: {

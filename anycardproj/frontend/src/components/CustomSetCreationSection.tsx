@@ -57,10 +57,10 @@ const CustomSetCreationSection = ({
   };
 
   return (
-    <div className="w-full ">
+    <div className="w-full  ">
       <div className="text-[17vw] font-bold leading-none select-none background-text-gradient z-[-10] absolute w-full h-full">
         <div>Custom</div>
-        <div className="text-right  pr-[10vw]">Packs</div>
+        <div className="text-right pr-[10vw]">Packs</div>
       </div>
       <div className="pt-[7%] relative z-10">
         <div className="flex flex-col items-center gap-4 max-w-2xl mx-auto">

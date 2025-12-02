@@ -11,9 +11,10 @@ interface CardProps {
   onClick?: () => void;
   isExpanded?: boolean;
   onClose?: () => void;
+  autoScale?: boolean; // Enable automatic scaling based on container size (default: false)
 }
 
-export default function Card({
+function Card({
   card,
   enableTilt = false,
   isExiting = false,
@@ -21,6 +22,7 @@ export default function Card({
   onClick,
   isExpanded = false,
   onClose,
+  autoScale = false,
 }: CardProps) {
   const [imageError, setImageError] = useState(false);
   const [titleOverflowing, setTitleOverflowing] = useState(false);
@@ -29,7 +31,9 @@ export default function Card({
   const imageRef = useRef<HTMLImageElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const holoRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
 
   // Automatically enable holographic effect for mythic rarity cards
   // unless explicitly set to false
@@ -346,6 +350,32 @@ export default function Card({
     extractColorsFromImage(currentImageSrc);
   }, [card.picture, imageError]);
 
+  // Auto-scaling logic
+  useEffect(() => {
+    if (!autoScale || !containerRef.current) return;
+
+    const updateScale = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        const height = containerRef.current.offsetHeight;
+        // Base card size: 245px × 342px
+        // Calculate scale based on available space
+        const scaleX = width / 245;
+        const scaleY = height / 342;
+        const newScale = Math.min(scaleX, scaleY, 1.5); // Cap at 150% to prevent too large
+        setScale(Math.max(0.3, newScale)); // Min 30% scale
+      }
+    };
+
+    updateScale();
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [autoScale]);
+
   // Holographic mouse tracking handler
   const handleHoloMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!holoRef.current || isExiting || !isHolographic) return;
@@ -459,11 +489,12 @@ export default function Card({
   const cardContent = (
     <div
       ref={isHolographic ? holoRef : undefined}
-      className={`w-[245px] h-[342px] rounded-lg p-1 shadow-lg relative ${
+      className={`${autoScale ? "" : "w-[245px] h-[342px]"} rounded-lg p-1 shadow-lg relative ${
         isHolographic ? "card-holographic" : ""
       }`}
       style={{
         background: createGradient(),
+        ...(autoScale ? { width: "245px", height: "342px" } : {}),
       }}
       onMouseMove={
         isHolographic && !enableTilt ? handleHoloMouseMove : undefined
@@ -649,6 +680,27 @@ export default function Card({
     </div>
   );
 
+  // Wrap with scaling container if autoScale is enabled
+  const scaledContent = autoScale ? (
+    <div
+      ref={containerRef}
+      className="w-full h-full flex items-center justify-center"
+    >
+      <div
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+          width: "245px",
+          height: "342px",
+        }}
+      >
+        {cardContent}
+      </div>
+    </div>
+  ) : (
+    cardContent
+  );
+
   // Wrap with tilt effect if enabled
   if (enableTilt) {
     return (
@@ -668,7 +720,7 @@ export default function Card({
             : "transform 0.1s ease-out",
         }}
       >
-        {cardContent}
+        {scaledContent}
         {isExpanded && onClose && (
           <button
             type="button"
@@ -708,7 +760,7 @@ export default function Card({
         } relative`}
         onClick={onClick}
       >
-        {cardContent}
+        {scaledContent}
         {isExpanded && onClose && (
           <button
             type="button"
@@ -742,7 +794,7 @@ export default function Card({
   if (onClick) {
     return (
       <div className="cursor-pointer relative" onClick={onClick}>
-        {cardContent}
+        {scaledContent}
         {isExpanded && onClose && (
           <button
             type="button"
@@ -773,5 +825,21 @@ export default function Card({
     );
   }
 
-  return cardContent;
+  return scaledContent;
 }
+
+// Memoize Card component to prevent unnecessary re-renders
+// Only re-render if card data or key props change
+const MemoizedCard = React.memo(Card, (prevProps, nextProps) => {
+  return (
+    prevProps.card.id === nextProps.card.id &&
+    prevProps.card.picture === nextProps.card.picture &&
+    prevProps.enableTilt === nextProps.enableTilt &&
+    prevProps.isExpanded === nextProps.isExpanded &&
+    prevProps.autoScale === nextProps.autoScale &&
+    prevProps.holographic === nextProps.holographic &&
+    prevProps.isExiting === nextProps.isExiting
+  );
+});
+
+export default MemoizedCard;

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Card from "./Card";
 import { Card as CardType } from "@full-stack/types";
 
@@ -8,53 +8,6 @@ interface CardDrawingsProps {
 }
 
 const MAX_VISIBLE_CARDS = 4; // Show up to 4 cards in the stack
-
-// Scalable wrapper component that scales the entire card as a flat unit using CSS transform
-function ScalableCard({ card }: { card: CardType }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const updateScale = () => {
-      if (containerRef.current) {
-        const width = containerRef.current.offsetWidth;
-        const height = containerRef.current.offsetHeight;
-        // Base card size: 245px × 342px
-        // Calculate scale based on available space
-        const scaleX = width / 245;
-        const scaleY = height / 342;
-        const newScale = Math.min(scaleX, scaleY, 1.5); // Cap at 150% to prevent too large
-        setScale(Math.max(0.3, newScale)); // Min 30% scale
-      }
-    };
-
-    updateScale();
-    const resizeObserver = new ResizeObserver(updateScale);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      className="w-full h-full flex items-center justify-center"
-    >
-      <div
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "center center",
-          width: "245px",
-          height: "342px",
-        }}
-      >
-        <Card card={card} />
-      </div>
-    </div>
-  );
-}
 
 export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -124,7 +77,7 @@ export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
         )}
         <div className="grid grid-cols-5 auto-rows-[minmax(0,1fr)] gap-x-8 gap-y-10 justify-items-center items-start w-full flex-1 overflow-auto">
           {viewedCards.map((card, index) => (
-            <ScalableCard key={index} card={card} />
+            <Card key={index} card={card} autoScale={true} />
           ))}
         </div>
       </div>

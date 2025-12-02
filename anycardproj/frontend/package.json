@@ -26,6 +26,7 @@
         "@mantine/prism": "^6.0.19",
         "@mantine/spotlight": "^6.0.19",
         "@mantine/tiptap": "^6.0.19",
+        "@mynaui/icons-react": "^1.0.0",
         "@radix-ui/react-select": "^2.2.6",
         "@radix-ui/react-slot": "^1.2.4",
         "@radix-ui/react-use-controllable-state": "^1.2.2",

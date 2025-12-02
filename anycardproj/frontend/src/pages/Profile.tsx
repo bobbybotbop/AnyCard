@@ -28,6 +28,7 @@ const Profile = () => {
     const fetch = async () => {
       if (!user?.uid) {
         setLoading(false);
+        console.log("user has not logged in");
         return;
       }
       try {
@@ -102,10 +103,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-400 to-white p-6">
-      <div className="w-[90%] mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
-        </div>
+      <div className=" mt-[9vh] w-[90%] mx-auto">
         <WikipediaTestButton />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

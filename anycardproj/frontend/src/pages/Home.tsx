@@ -1,8 +1,15 @@
-import { useState, useRef } from "react";
-import DailyPacks from "../components/DailyPacks";
-import PreviousSetsSection from "../components/PreviousSetsSection";
-import CustomSetCreationSection from "../components/CustomSetCreationSection";
-import PreviousCustomSetsSection from "../components/PreviousCustomSetsSection";
+import { useState, useRef, lazy, Suspense } from "react";
+// Lazy load heavy components to improve initial page load
+const DailyPacks = lazy(() => import("../components/WeeklyPacks"));
+const PreviousSetsSection = lazy(
+  () => import("../components/PreviousSetsSection")
+);
+const CustomSetCreationSection = lazy(
+  () => import("../components/CustomSetCreationSection")
+);
+const PreviousCustomSetsSection = lazy(
+  () => import("../components/PreviousCustomSetsSection")
+);
 // import Carousel from "../components/Carousel";
 
 const HomePage = () => {
@@ -74,7 +81,7 @@ const HomePage = () => {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white relative overflow-hidden">
       {/* Background Text */}
-      <div className="absolute inset-0 flex flex-col pt-[8vh] text-center pointer-events-none z-0">
+      <div className="mt-[8vh] absolute inset-0 flex flex-col text-center pointer-events-none z-0">
         <div className="text-[20vw] font-bold leading-none select-none background-text-gradient">
           <div>Weekly</div>
           <div className="text-right mt-[10vh] pr-[10vw]">Sets</div>
@@ -83,48 +90,66 @@ const HomePage = () => {
 
       <div className="w-[90%] mx-auto mt-10 relative z-10">
         <div className="h-[100vh] w-full">
-          <DailyPacks
-            isLocked={activeComponent === "packGrid"}
-            onSelectionStart={handleDailyPacksSelectionStart}
-            onSelectionEnd={handleDailyPacksSelectionEnd}
-            resetRef={dailyPacksResetRef}
-          />
+          <Suspense
+            fallback={
+              <div className="text-white/90 text-center">Loading packs...</div>
+            }
+          >
+            <DailyPacks
+              isLocked={activeComponent === "packGrid"}
+              onSelectionStart={handleDailyPacksSelectionStart}
+              onSelectionEnd={handleDailyPacksSelectionEnd}
+              resetRef={dailyPacksResetRef}
+            />
+          </Suspense>
         </div>
 
         {/* Custom Set Creation Section */}
-        <CustomSetCreationSection
-          themeInput={themeInput}
-          setThemeInput={setThemeInput}
-          isCreatingSet={isCreatingSet}
-          setIsCreatingSet={setIsCreatingSet}
-          createSetError={createSetError}
-          setCreateSetError={setCreateSetError}
-          createSetSuccess={createSetSuccess}
-          setCreateSetSuccess={setCreateSetSuccess}
-          onSetCreated={handleCustomSetCreated}
-        />
+        <Suspense
+          fallback={<div className="text-white/90 text-center">Loading...</div>}
+        >
+          <CustomSetCreationSection
+            themeInput={themeInput}
+            setThemeInput={setThemeInput}
+            isCreatingSet={isCreatingSet}
+            setIsCreatingSet={setIsCreatingSet}
+            createSetError={createSetError}
+            setCreateSetError={setCreateSetError}
+            createSetSuccess={createSetSuccess}
+            setCreateSetSuccess={setCreateSetSuccess}
+            onSetCreated={handleCustomSetCreated}
+          />
+        </Suspense>
 
         {/* Custom Sets History Section */}
-        <PreviousCustomSetsSection
-          isLocked={
-            activeComponent === "dailyPacks" || activeComponent === "packGrid"
-          }
-          onSelectionStart={handleCustomPackGridSelectionStart}
-          onSelectionEnd={handleCustomPackGridSelectionEnd}
-          resetRef={customPackGridResetRef}
-          refreshKey={customSetsRefreshKey}
-        />
+        <Suspense
+          fallback={<div className="text-white/90 text-center">Loading...</div>}
+        >
+          <PreviousCustomSetsSection
+            isLocked={
+              activeComponent === "dailyPacks" || activeComponent === "packGrid"
+            }
+            onSelectionStart={handleCustomPackGridSelectionStart}
+            onSelectionEnd={handleCustomPackGridSelectionEnd}
+            resetRef={customPackGridResetRef}
+            refreshKey={customSetsRefreshKey}
+          />
+        </Suspense>
 
         {/* Previous Sets Section */}
-        <PreviousSetsSection
-          isLocked={
-            activeComponent === "dailyPacks" ||
-            activeComponent === "customPackGrid"
-          }
-          onSelectionStart={handlePackGridSelectionStart}
-          onSelectionEnd={handlePackGridSelectionEnd}
-          resetRef={packGridResetRef}
-        />
+        <Suspense
+          fallback={<div className="text-white/90 text-center">Loading...</div>}
+        >
+          <PreviousSetsSection
+            isLocked={
+              activeComponent === "dailyPacks" ||
+              activeComponent === "customPackGrid"
+            }
+            onSelectionStart={handlePackGridSelectionStart}
+            onSelectionEnd={handlePackGridSelectionEnd}
+            resetRef={packGridResetRef}
+          />
+        </Suspense>
 
         {/* Infinite scrolling PackModels */}
         {/* <Carousel /> */}

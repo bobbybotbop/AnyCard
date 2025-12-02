@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import googleLogo from "../assets/googleLogo.svg";
 import { BackgroundBeams } from "../components/ui/background-beams";
 import { signin } from "../auth/auth";
-import anyCardLogo from "../../public/anyCardLogo.png";
+import anyCardLogo from "/anyCardLogo.png?url";
 
 export default function LoginPage() {
   const navigate = useNavigate();
