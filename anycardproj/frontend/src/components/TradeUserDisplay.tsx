@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { userData, Card } from "@full-stack/types";
+import { useNavigate } from "react-router-dom";
 
 interface TradeUserDisplayProps {
   user: userData;
@@ -7,11 +8,13 @@ interface TradeUserDisplayProps {
 
 export default function TradeUserDisplay({ user }: TradeUserDisplayProps) {
   const [selectedUser, setSelectedUser] = useState<userData | null>(null);
+  const navigate = useNavigate();
 
   const handleCardClick = (user: userData) => {
     setSelectedUser(user);
     console.log("Selected user:", user);
-    // Add your click handler logic here
+    const uid = user.UID;
+    navigate(`/trading/${uid}`);
   };
 
   // Get first 3 cards
@@ -26,7 +29,6 @@ export default function TradeUserDisplay({ user }: TradeUserDisplayProps) {
         <h3 className="text-lg font-semibold">{user.username}</h3>
         <p className="text-sm text-gray-600">{user.email}</p>
 
-        {/* Display Cards */}
         {displayedCards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedCards.map((card: Card, idx: number) => (

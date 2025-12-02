@@ -1,6 +1,7 @@
 import { MantineProvider } from "@mantine/core";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "./pages/Error";
+import TradingOther from "./pages/TradingOther";
 import RootLayout from "./layouts/RootLayout";
 import { PATHS } from "./constants/Navigation";
 import { AuthUserProvider } from "./auth/authProvider";
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
         };
       }),
     ],
+  },
+  {
+    path: "/trading/:uid",
+    element: <TradingOther />,
   },
 ]);
 
