@@ -79,6 +79,18 @@ router.get("/api/getUserInventory/:userUid", async (req, res) => {
   }
 });
 
+router.get("/api/getAllTrades/:uid", async (req, res) => {
+  const { uid } = req.params;
+  if (!uid) return res.status(400).json({ error: "user not given" });
+
+  try {
+    const result = await controllers.getAllTrades(uid);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
 // ============= WIKIPEDIA ROUTES =============
 
 router.get("/api/searchWikipedia", async (req, res) => {
@@ -245,7 +257,10 @@ router.post("/api/createCustomSet", async (req, res) => {
     res.status(200).json(result);
   } catch (error: any) {
     console.error("Error in createCustomSet", error);
-    if (error.message === "Theme input is required" || error.message === "Theme input is too long (max 200 characters)") {
+    if (
+      error.message === "Theme input is required" ||
+      error.message === "Theme input is too long (max 200 characters)"
+    ) {
       res.status(400).json({ error: error.message });
     } else if (error.message === "No results found") {
       res.status(404).json({ error: error.message });

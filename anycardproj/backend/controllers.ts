@@ -135,6 +135,19 @@ export async function getSetFromCollection(
   }
 }
 
+export async function getAllTrades(uid: string) {
+  const userData = await getUserData(uid);
+  if (!userData) throw Error("User not found!");
+
+  let reqAndSent: (requestUser | sentUser)[] = [];
+
+  if (userData.requestedTrade) reqAndSent = [...userData.requestedTrade];
+
+  if (userData.sentTrade) reqAndSent = [...reqAndSent, ...userData.sentTrade];
+
+  return reqAndSent.sort((a, b) => b.date.getDate() - a.date.getDate());
+}
+
 export async function getAllExistingThemes(): Promise<string[]> {
   try {
     const themesSet = new Set<string>();
@@ -689,6 +702,7 @@ export async function requestTrade(
   const sentUserData = await getUserData(sentUserUID);
 
   const tradeId = uuidv4();
+  const date = new Date();
 
   if (!userData || !sentUserData)
     throw new Error("User or sent User not found");
@@ -699,6 +713,7 @@ export async function requestTrade(
     wantedCard: wantedCard,
     givenCard: givenCard,
     status: "pending",
+    date: date,
   };
 
   if (userData.sentTrade && userData.sentTrade.length > 0) {
@@ -724,6 +739,7 @@ export async function requestTrade(
     wantedCard: givenCard,
     givenCard: wantedCard,
     status: "pending",
+    date: date,
   };
 
   if (sentUserData.requestedTrade && sentUserData.requestedTrade.length > 0) {

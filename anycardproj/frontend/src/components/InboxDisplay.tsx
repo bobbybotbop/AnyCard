@@ -1,23 +1,24 @@
 import { useState, useEffect } from "react";
-import { getUserData } from "../api/cards";
-import { userData } from "@full-stack/types";
+import { getAllTrades } from "../api/cards";
+import { requestUser, sentUser } from "@full-stack/types";
+import RequestTradeMail from "../components/RequestTradeMail";
 
 interface InputProps {
   uid: string;
 }
 
 export default function InboxDisplay({ uid }: InputProps) {
-  const [user, setUser] = useState<userData | null>(null);
+  const [trades, setTrades] = useState<(requestUser | sentUser)[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchTrades = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getUserData(uid);
-        setUser(data);
+        const trades = await getAllTrades(uid);
+        setTrades(trades);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to fetch user data"
@@ -29,7 +30,7 @@ export default function InboxDisplay({ uid }: InputProps) {
     };
 
     if (uid) {
-      fetchUserData();
+      fetchTrades();
     }
   }, [uid]);
 
@@ -41,7 +42,7 @@ export default function InboxDisplay({ uid }: InputProps) {
     return <div className="p-4 text-red-500">Error: {error}</div>;
   }
 
-  if (!user) {
+  if (!trades) {
     return <div className="p-4">No user data found</div>;
   }
 
@@ -49,8 +50,9 @@ export default function InboxDisplay({ uid }: InputProps) {
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">User Inbox</h2>
       <div className="space-y-4">
-        {/* Add your inbox content here */}
-        <p>User ID: {uid}</p>
+        {trades.map((t, i) => (
+          <RequestTradeMail mail={t} />
+        ))}
       </div>
     </div>
   );

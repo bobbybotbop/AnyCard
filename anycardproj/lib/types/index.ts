@@ -55,6 +55,7 @@ export interface sentUser {
   wantedCard: Card;
   givenCard: Card;
   status: Status;
+  date: Date;
 }
 
 export interface requestUser {
@@ -63,4 +64,5 @@ export interface requestUser {
   wantedCard: Card;
   givenCard: Card;
   status: Status;
+  date: Date;
 }

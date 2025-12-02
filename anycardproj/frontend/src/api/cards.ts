@@ -1,5 +1,12 @@
 import { BACKEND_BASE_PATH } from "../constants/Navigation";
-import { newUser, userData, Set, Card } from "@full-stack/types";
+import {
+  newUser,
+  userData,
+  Set,
+  Card,
+  requestUser,
+  sentUser,
+} from "@full-stack/types";
 
 // CREATE - POST /api/createCard
 export const createCard = async (cardData: Omit<Card, "id">): Promise<Card> => {
@@ -216,5 +223,19 @@ export const getAllCustomSets = async (): Promise<Set[]> => {
     throw new Error(error.error || "Failed to get custom sets");
   }
 
+  return response.json();
+};
+
+export const getAllTrades = async (
+  uid: string
+): Promise<(requestUser | sentUser)[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllTrades/${uid}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get any of users trades");
+  }
   return response.json();
 };

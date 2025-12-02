@@ -324,7 +324,7 @@ export default function Card({
     return context.measureText(text).width;
   };
 
-  let nameRef = useRef<HTMLHeadingElement>(null);
+  const nameRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     if (nameRef.current) {
