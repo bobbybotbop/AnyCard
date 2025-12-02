@@ -19,16 +19,21 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
   />
 );
 
-export type ConversationContentProps = ComponentProps<
-  typeof StickToBottom.Content
->;
+export type ConversationContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 export const ConversationContent = ({
   className,
+  children,
   ...props
-}: ConversationContentProps) => (
-  <StickToBottom.Content className={cn('p-4', className)} {...(props as any)} />
-);
+}: ConversationContentProps) => {
+  return (
+    <div className={cn('p-4', className)} {...props}>
+      <StickToBottom.Content>
+        {children}
+      </StickToBottom.Content>
+    </div>
+  );
+};
 
 export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 

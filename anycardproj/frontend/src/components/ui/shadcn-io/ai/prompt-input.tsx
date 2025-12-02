@@ -69,7 +69,7 @@ export const PromptInputTextarea = ({
         className
       )}
       name="message"
-      onChange={(e) => {
+      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
         onChange?.(e);
       }}
       onKeyDown={handleKeyDown}

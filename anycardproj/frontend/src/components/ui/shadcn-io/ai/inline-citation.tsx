@@ -6,7 +6,7 @@ import {
   CarouselContent,
   CarouselItem,
   type CarouselApi,
-} from '@mantine/carousel';
+} from '@/components/ui/carousel';
 import {
   HoverCard,
   HoverCardContent,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
-import { type ComponentProps, useCallback, useEffect, useState, useRef, createContext, useContext } from 'react';
+import { type ComponentProps, useCallback, useEffect, useState, createContext, useContext } from 'react';
 
 // Context to share carousel API with child components
 const CarouselApiContext = createContext<CarouselApi | undefined>(undefined);
