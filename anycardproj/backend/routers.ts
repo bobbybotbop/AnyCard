@@ -340,20 +340,6 @@ router.get("/api/proxy-image", async (req, res) => {
         .status(400)
         .json({ error: "Only HTTP and HTTPS URLs are allowed" });
     }
-router.post("/api/requestTrade/:userUID", async (req, res) => {
-  const { userUID } = req.params;
-  const { sentUserUID, wantedCard, givenCard } = req.body;
-
-  console.log(sentUserUID);
-  console.log(wantedCard);
-  console.log(givenCard);
-  if (!userUID) {
-    return res.status(400).json({ error: "userUid required" });
-  }
-
-  if (!sentUserUID || !wantedCard || !givenCard) {
-    return res.status(400).json({ error: "invalid body" });
-  }
 
     try {
       // Determine appropriate referer based on the domain
@@ -435,6 +421,31 @@ router.post("/api/requestTrade/:userUID", async (req, res) => {
   } catch (error: any) {
     console.error("Error in proxy-image route:", error);
     res.status(500).json({ error: "Failed to process image proxy request" });
+  }
+});
+
+router.post("/api/requestTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { sentUserUID, wantedCard, givenCard } = req.body;
+
+  console.log(sentUserUID);
+  console.log(wantedCard);
+  console.log(givenCard);
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!sentUserUID || !wantedCard || !givenCard) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+  try {
+    await controllers.requestTrade(userUID, sentUserUID, wantedCard, givenCard);
+
+    return res.status(200).json({
+      message: "Trade successfully started",
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
   }
 });
 
