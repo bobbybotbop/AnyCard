@@ -26,8 +26,9 @@ import {
  * you can find the name by running `flyctl status`, under App > Name.
  */
 // For local development, use localhost. For production, use the deployed URL
-export const BACKEND_BASE_PATH = "http://localhost:8080";
-// export const BACKEND_BASE_PATH = "https://fa23-lec9-demo-soln.fly.dev/api";
+// Uses VITE_BACKENDURL environment variable, defaults to localhost:8080
+export const BACKEND_BASE_PATH =
+  import.meta.env.VITE_BACKENDURL || "http://localhost:8080";
 
 export const PATHS: {
   link: string;

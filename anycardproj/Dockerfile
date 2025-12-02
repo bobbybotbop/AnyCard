@@ -1,8 +1,8 @@
 # Use Nginx base image
 FROM nginx:stable-alpine
 
-# Install Node 20
-RUN apk add --update nodejs npm
+# Install Node 20 and gettext (for envsubst)
+RUN apk add --update nodejs npm gettext
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -20,7 +20,7 @@ RUN pnpm run build
 
 # Copy necessary build outputs and dependencies to nginx
 RUN cp -r ./frontend/dist/* /usr/share/nginx/html/
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
 
 # Expose the port Nginx is running on
 EXPOSE 80

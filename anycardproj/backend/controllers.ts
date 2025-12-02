@@ -247,7 +247,10 @@ export async function getSerperImage(query: string): Promise<SerperResult> {
  */
 async function testProxyImage(imageUrl: string): Promise<boolean> {
   try {
-    const proxyUrl = `http://localhost:8080/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const backendUrl = process.env.BACKENDURL || "http://localhost:8080";
+    const proxyUrl = `${backendUrl}/api/proxy-image?url=${encodeURIComponent(
+      imageUrl
+    )}`;
 
     const response = await fetch(proxyUrl, {
       method: "GET",
