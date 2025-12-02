@@ -64,3 +64,7 @@ export interface requestUser {
   givenCard: Card;
   status: Status;
 }
+
+export interface WeatherResponse {
+  raining: boolean;
+}

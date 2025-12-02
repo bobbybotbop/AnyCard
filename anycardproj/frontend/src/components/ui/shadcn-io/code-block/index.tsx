@@ -466,9 +466,8 @@ export const CodeBlockCopyButton = ({
 
   if (asChild) {
     return cloneElement(children as ReactElement, {
-      // @ts-expect-error - we know this is a button
       onClick: copyToClipboard,
-    });
+    } as any);
   }
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
