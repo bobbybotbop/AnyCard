@@ -6,6 +6,7 @@ import RootLayout from "./layouts/RootLayout";
 import { PATHS } from "./constants/Navigation";
 import { AuthUserProvider } from "./auth/authProvider";
 import "./index.css";
+import Trading from "./pages/Trading";
 
 const theme = {
   fontFamily:
@@ -25,11 +26,11 @@ const router = createBrowserRouter([
           element: <Component />,
         };
       }),
+      {
+        path: "/trading/:uid",
+        element: <TradingOther />,
+      },
     ],
-  },
-  {
-    path: "/trading/:uid",
-    element: <TradingOther />,
   },
 ]);
 
