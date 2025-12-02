@@ -248,6 +248,9 @@ export const respondTrade = async (
 ): Promise<void> => {
   const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
     method: "DELETE",
+    headers: {
+      "Content-Type": "application/json", // ADD THIS
+    },
     body: JSON.stringify({ tradeId, response }),
   });
   if (!a.ok) {
@@ -259,6 +262,9 @@ export const respondTrade = async (
 export const getAllUsers = async (uid: string): Promise<userData[]> => {
   const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllUsers/${uid}`, {
     method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
   if (!response.ok) {
     const error = await response.json();
@@ -285,6 +291,9 @@ export const requestTrade = async (
     `${BACKEND_BASE_PATH}/api/requestTrade/${userUID}`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json", // ADD THIS
+      },
       body: JSON.stringify({ sentUserUID, wantedCard, givenCard }),
     }
   );

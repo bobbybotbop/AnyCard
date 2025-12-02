@@ -2,7 +2,7 @@ import InboxDisplay from "../components/InboxDisplay";
 
 const Inbox = () => {
   // Get some sample cards from the first set for testing
-  const mockedUid: string = "dwyPdzKQayMGj4ZGnNyse1r2Ckn2";
+  const mockedUid: string = "04cd2c33-e3db-4787-9cee-4ed653546284";
 
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white">
