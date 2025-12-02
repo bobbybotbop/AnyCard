@@ -1,0 +1,57 @@
+import { useState } from "react";
+import { userData, Card } from "@full-stack/types";
+import { useNavigate } from "react-router-dom";
+
+interface TradeUserDisplayProps {
+  currentUser: userData;
+  otherUser: userData;
+}
+
+export default function TradeUserDisplay({
+  currentUser,
+  otherUser,
+}: TradeUserDisplayProps) {
+  const [selectedUser, setSelectedUser] = useState<userData | null>(null);
+  const navigate = useNavigate();
+
+  const handleCardClick = (user: userData) => {
+    setSelectedUser(user);
+    console.log("Selected user:", user);
+    const otherUID = user.UID;
+    const userUID = currentUser.UID;
+    navigate(`/trading/${userUID}/${otherUID}`);
+  };
+
+  // Get first 3 cards
+  const displayedCards = (otherUser.cards || []).slice(0, 3);
+
+  return (
+    <div className="p-4">
+      <div
+        onClick={() => handleCardClick(otherUser)}
+        className="cursor-pointer p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow mb-6"
+      >
+        <h3 className="text-lg font-semibold">{otherUser.username}</h3>
+        <p className="text-sm text-gray-600">{otherUser.email}</p>
+
+        {displayedCards.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedCards.map((card: Card, idx: number) => (
+              <div
+                key={idx}
+                className="p-4 border rounded-lg shadow-md bg-white"
+              >
+                <h4 className="font-semibold">{card.name}</h4>
+                <p className="text-sm text-gray-600">HP: {card.hp}</p>
+                <p className="text-sm text-gray-600">Rarity: {card.rarity}</p>
+                <p className="text-xs text-gray-500">From: {card.fromPack}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No cards available</p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,10 +1,12 @@
 import { MantineProvider } from "@mantine/core";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "./pages/Error";
+import TradingOther from "./pages/TradingOther";
 import RootLayout from "./layouts/RootLayout";
 import { PATHS } from "./constants/Navigation";
 import { AuthUserProvider } from "./auth/authProvider";
 import "./index.css";
+import Trading from "./pages/Trading";
 
 const theme = {
   fontFamily:
@@ -24,6 +26,10 @@ const router = createBrowserRouter([
           element: <Component />,
         };
       }),
+      {
+        path: "/trading/:userUID/:otherUID",
+        element: <TradingOther />,
+      },
     ],
   },
 ]);

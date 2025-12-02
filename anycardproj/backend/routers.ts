@@ -45,18 +45,16 @@ router.get("/api/getUserData/:uid", async (req, res) => {
 router.get("/api/getAllUsers/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const users = await controllers.getAllUsers(uid);
+    const result = await controllers.getAllUsers(uid);
 
-    if (!users) {
+    if (!result) {
       res.status(200).json({
         error: "Something happened",
       });
       return;
     }
 
-    res.status(200).json({
-      users,
-    });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Failed to fetch all users" });
@@ -78,6 +76,36 @@ router.get("/api/getUserInventory/:userUid", async (req, res) => {
     return res.status(400).json({ error: "Invalid user" });
   }
 });
+
+router.get("/api/getAllTrades/:uid", async (req, res) => {
+  const { uid } = req.params;
+  if (!uid) return res.status(400).json({ error: "user not given" });
+
+  try {
+    const result = await controllers.getAllTrades(uid);
+    return res.status(200).json(result);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+// ============= WIKIPEDIA ROUTES =============
+
+// router.get("/api/searchWikipedia", async (req, res) => {
+//   try {
+//     const { query } = req.query;
+
+//     if (!query || typeof query !== "string") {
+//       res.status(400).json({ error: "Query parameter is required" });
+//       return;
+//     }
+
+//     const result = await controllers.searchWikipedia(query);
+//     res.status(200).json(result);
+//   } catch (error: any) {
+//     return res.status(400).json({ error: error.message });
+//   }
+// });
 
 // ============= WIKIPEDIA ROUTES =============
 
@@ -312,6 +340,20 @@ router.get("/api/proxy-image", async (req, res) => {
         .status(400)
         .json({ error: "Only HTTP and HTTPS URLs are allowed" });
     }
+router.post("/api/requestTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { sentUserUID, wantedCard, givenCard } = req.body;
+
+  console.log(sentUserUID);
+  console.log(wantedCard);
+  console.log(givenCard);
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!sentUserUID || !wantedCard || !givenCard) {
+    return res.status(400).json({ error: "invalid body" });
+  }
 
     try {
       // Determine appropriate referer based on the domain

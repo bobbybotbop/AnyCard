@@ -1,5 +1,13 @@
 import { BACKEND_BASE_PATH } from "../constants/Navigation";
-import { newUser, userData, Set, Card } from "@full-stack/types";
+import {
+  newUser,
+  userData,
+  Set,
+  Card,
+  requestUser,
+  sentUser,
+  MyResponse,
+} from "@full-stack/types";
 
 // CREATE - POST /api/createCard
 export const createCard = async (cardData: Omit<Card, "id">): Promise<Card> => {
@@ -233,4 +241,81 @@ export const getAllCustomSets = async (): Promise<Set[]> => {
   }
 
   return response.json();
+};
+
+export const getAllTrades = async (
+  uid: string
+): Promise<(requestUser | sentUser)[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllTrades/${uid}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get any of users trades");
+  }
+  return response.json();
+};
+
+export const respondTrade = async (
+  response: MyResponse,
+  userUid: string,
+  tradeId: string
+): Promise<void> => {
+  const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json", // ADD THIS
+    },
+    body: JSON.stringify({ tradeId, response }),
+  });
+  if (!a.ok) {
+    const error = await a.json();
+    throw new Error(error.error || "Response failed");
+  }
+};
+
+export const getAllUsers = async (uid: string): Promise<userData[]> => {
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllUsers/${uid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get all users");
+  }
+
+  return response.json();
+};
+
+export const requestTrade = async (
+  wantCard: Card,
+  giveCard: Card,
+  userUID: string,
+  sentUserUID: string
+): Promise<void> => {
+  const wantedCard = wantCard;
+  const givenCard = giveCard;
+  console.log(wantCard);
+  console.log(giveCard);
+  console.log(userUID);
+  console.log(sentUserUID);
+
+  const response = await fetch(
+    `${BACKEND_BASE_PATH}/api/requestTrade/${userUID}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // ADD THIS
+      },
+      body: JSON.stringify({ sentUserUID, wantedCard, givenCard }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get it");
+  }
 };
