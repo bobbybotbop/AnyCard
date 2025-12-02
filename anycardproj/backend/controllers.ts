@@ -145,7 +145,9 @@ export async function getAllTrades(uid: string) {
 
   if (userData.sentTrade) reqAndSent = [...reqAndSent, ...userData.sentTrade];
 
-  return reqAndSent.sort((a, b) => b.date.getDate() - a.date.getDate());
+  return reqAndSent.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 }
 
 export async function getAllExistingThemes(): Promise<string[]> {

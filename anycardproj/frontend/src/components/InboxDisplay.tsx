@@ -50,8 +50,8 @@ export default function InboxDisplay({ uid }: InputProps) {
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">User Inbox</h2>
       <div className="space-y-4">
-        {trades.map((t, i) => (
-          <RequestTradeMail mail={t} />
+        {trades.map((trade) => (
+          <RequestTradeMail mail={trade} userUid={uid} />
         ))}
       </div>
     </div>

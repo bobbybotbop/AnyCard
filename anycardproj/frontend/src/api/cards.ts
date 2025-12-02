@@ -6,6 +6,7 @@ import {
   Card,
   requestUser,
   sentUser,
+  MyResponse,
 } from "@full-stack/types";
 
 // CREATE - POST /api/createCard
@@ -238,4 +239,20 @@ export const getAllTrades = async (
     throw new Error(error.error || "Failed to get any of users trades");
   }
   return response.json();
+};
+
+export const respondTrade = async (
+  res: MyResponse,
+  uid: string
+): Promise<void> => {
+  console.log("HEY");
+  const response = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${uid}`, {
+    method: "DELETE",
+    body: JSON.stringify(res),
+  });
+  console.log(response.ok);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Response failed");
+  }
 };
