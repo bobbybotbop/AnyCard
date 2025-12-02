@@ -896,14 +896,14 @@ export async function getReqUserData(
 
     return {
       UID: reqUser.requestedUserUID,
-      username: data?.username || "",
-      email: data?.email || "",
-      createdAt: data?.createdAt || "",
-      level: data?.level || 0,
-      cards: data?.cards || [],
-      favoriteCards: data?.favoriteCards || [],
-      sentTrade: data?.sentTrade || [],
-      requestedTrade: data?.requestedTrade || [],
+      username: reqUserData?.username || "",
+      email: reqUserData?.email || "",
+      createdAt: reqUserData?.createdAt || "",
+      level: reqUserData?.level || 0,
+      cards: reqUserData?.cards || [],
+      favoriteCards: reqUserData?.favoriteCards || [],
+      sentTrade: reqUserData?.sentTrade || [],
+      requestedTrade: reqUserData?.requestedTrade || [],
     };
   } catch {
     return null;
