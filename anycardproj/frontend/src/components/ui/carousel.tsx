@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Carousel as MantineCarousel, CarouselSlide } from "@mantine/carousel"
+import { Carousel as MantineCarousel } from "@mantine/carousel"
 import { cn } from "@/lib/utils"
 import type { ComponentProps } from "react"
 
@@ -65,9 +65,9 @@ CarouselContent.displayName = "CarouselContent"
 
 const CarouselItem = React.forwardRef<
   HTMLDivElement,
-  ComponentProps<typeof CarouselSlide>
+  ComponentProps<"div">
 >(({ className, ...props }, ref) => (
-  <CarouselSlide
+  <MantineCarousel.Slide
     ref={ref}
     className={cn("min-w-0 shrink-0", className)}
     {...props}

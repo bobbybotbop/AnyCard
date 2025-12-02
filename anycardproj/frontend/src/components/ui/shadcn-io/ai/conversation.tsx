@@ -7,17 +7,25 @@ import type { ComponentProps } from 'react';
 import { useCallback } from 'react';
 import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom';
 
-export type ConversationProps = ComponentProps<typeof StickToBottom>;
+export type ConversationProps = React.HTMLAttributes<HTMLDivElement> & {
+  initial?: "smooth" | "instant"
+  resize?: "smooth" | "instant"
+  role?: string
+}
 
-export const Conversation = ({ className, ...props }: ConversationProps) => (
-  <StickToBottom
-    className={cn('relative flex-1 overflow-y-auto', className)}
-    initial="smooth"
-    resize="smooth"
-    role="log"
-    {...(props as any)}
-  />
-);
+export const Conversation = ({ className, initial = "smooth", resize = "smooth", role = "log", children, ...props }: ConversationProps) => {
+  return (
+    <div className={cn('relative flex-1 overflow-y-auto', className)} {...props}>
+      <StickToBottom
+        initial={initial}
+        resize={resize}
+        role={role}
+      >
+        {children}
+      </StickToBottom>
+    </div>
+  );
+};
 
 export type ConversationContentProps = React.HTMLAttributes<HTMLDivElement>;
 

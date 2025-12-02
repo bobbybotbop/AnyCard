@@ -49,6 +49,7 @@
         "embla-carousel-react": "8.0.0-rc11",
         "harden-react-markdown": "^1.1.6",
         "katex": "^0.16.25",
+        "liquid-glass-react": "^1.1.1",
         "localforage": "^1.10.0",
         "lucide-react": "^0.268.0",
         "match-sorter": "^6.3.1",

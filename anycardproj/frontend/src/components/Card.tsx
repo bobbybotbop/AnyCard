@@ -832,7 +832,7 @@ function Card({
 // Only re-render if card data or key props change
 const MemoizedCard = React.memo(Card, (prevProps, nextProps) => {
   return (
-    prevProps.card.id === nextProps.card.id &&
+    prevProps.card.name === nextProps.card.name &&
     prevProps.card.picture === nextProps.card.picture &&
     prevProps.enableTilt === nextProps.enableTilt &&
     prevProps.isExpanded === nextProps.isExpanded &&
