@@ -40,8 +40,8 @@ const PopupTrading = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-white w-[90%] max-w-lg rounded-xl shadow-xl p-6 relative">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 overflow-hidden">
+      <div className="bg-white w-[90%] max-w-4xl rounded-xl shadow-xl p-6 relative mx-4 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         {/* X button */}
         <button
           onClick={onClose}
@@ -52,7 +52,7 @@ const PopupTrading = ({
 
         <h2 className="text-2xl font-bold text-center mb-4">Confirm Trade</h2>
 
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center justify-center gap-6 p-4 flex-wrap">
           {/* Want Card */}
           <div className="flex-shrink-0">
             {wantCard ? (

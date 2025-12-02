@@ -11,8 +11,8 @@ const Trading = () => {
   }
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white">
-      <div className="w-[90%] mx-auto">
+    <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white overflow-x-hidden">
+      <div className="mt-[8vh] w-[90%] max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
           Trading
         </h1>

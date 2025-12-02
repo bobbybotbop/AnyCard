@@ -67,7 +67,7 @@ const TradingOther = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
+      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center overflow-x-hidden">
         <div className="text-2xl font-semibold">Loading...</div>
       </div>
     );
@@ -75,7 +75,7 @@ const TradingOther = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
+      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center overflow-x-hidden">
         <div className="text-red-500 text-xl">Error: {error}</div>
       </div>
     );
@@ -83,7 +83,7 @@ const TradingOther = () => {
 
   if (!otherUser) {
     return (
-      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
+      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center overflow-x-hidden">
         <div className="text-xl">Other user not found</div>
       </div>
     );
@@ -91,7 +91,7 @@ const TradingOther = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center">
+      <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white flex items-center justify-center overflow-x-hidden">
         <div className="text-xl">Current user not found</div>
       </div>
     );
@@ -99,26 +99,28 @@ const TradingOther = () => {
 
   const user = currentSelection == "Want" ? otherUser : currentUser;
   return (
-    <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white">
-      <div className="w-[90%] mx-auto">
+    <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white overflow-x-hidden">
+      <div className="w-[90%] max-w-7xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2 break-words">
             {user.username}'s Cards
           </h1>
-          <p className="text-gray-600">{user.email}</p>
+          <p className="text-gray-600 break-words">{user.email}</p>
           <p className="text-sm text-gray-500 mt-2">
             Level {user.level} • {user.cards?.length || 0} cards
           </p>
         </div>
 
         {user.cards && user.cards.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {user.cards.map((card) => (
-              <CardComponent
-                card={card}
-                enableTilt={true}
-                onClick={() => handleCardClick(card)}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+            {user.cards.map((card, index) => (
+              <div key={index} className="w-full flex justify-center">
+                <CardComponent
+                  card={card}
+                  enableTilt={true}
+                  onClick={() => handleCardClick(card)}
+                />
+              </div>
             ))}
           </div>
         ) : (
