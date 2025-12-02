@@ -1,8 +1,12 @@
 import InboxDisplay from "../components/InboxDisplay";
+import { useAuth } from "../auth/authProvider";
 
 const Inbox = () => {
-  // Get some sample cards from the first set for testing
-  const mockedUid: string = "04cd2c33-e3db-4787-9cee-4ed653546284";
+  const { user } = useAuth();
+
+  if (!user?.uid) {
+    return <p>User not found</p>;
+  }
 
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white">
@@ -11,7 +15,7 @@ const Inbox = () => {
           Inbox
         </h1>
         <div className="flex flex-col items-center">
-          <InboxDisplay uid={mockedUid} />
+          <InboxDisplay uid={user.uid} />
         </div>
       </div>
     </main>

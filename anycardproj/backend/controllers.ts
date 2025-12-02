@@ -780,9 +780,9 @@ export async function requestTrade(
   };
 
   if (userData.sentTrade && userData.sentTrade.length > 0) {
-    const hasUsedCard = userData.sentTrade.some(
-      (t) => t.givenCard.name === givenCard.name
-    );
+    const hasUsedCard = userData.sentTrade
+      .filter((t) => t.status === "pending")
+      .some((t) => t.givenCard.name === givenCard.name);
 
     if (hasUsedCard) {
       throw Error("Card is already in use for another trade");

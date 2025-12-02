@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { userData, Card } from "@full-stack/types";
 import { useNavigate } from "react-router-dom";
+import CardComponent from "../components/Card";
 
 interface TradeUserDisplayProps {
   currentUser: userData;
@@ -36,16 +37,8 @@ export default function TradeUserDisplay({
 
         {displayedCards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedCards.map((card: Card, idx: number) => (
-              <div
-                key={idx}
-                className="p-4 border rounded-lg shadow-md bg-white"
-              >
-                <h4 className="font-semibold">{card.name}</h4>
-                <p className="text-sm text-gray-600">HP: {card.hp}</p>
-                <p className="text-sm text-gray-600">Rarity: {card.rarity}</p>
-                <p className="text-xs text-gray-500">From: {card.fromPack}</p>
-              </div>
+            {displayedCards.map((card) => (
+              <CardComponent card={card} />
             ))}
           </div>
         ) : (
