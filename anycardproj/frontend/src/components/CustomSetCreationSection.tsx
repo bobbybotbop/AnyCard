@@ -1,4 +1,4 @@
-import { createCustomSet } from "../api/cards";
+import { createCustomSet } from "../api/api";
 import { SendHorizontalIcon } from "./ui/icons/lucide-send-horizontal";
 import { Loader } from "./ui/shadcn-io/ai/loader";
 

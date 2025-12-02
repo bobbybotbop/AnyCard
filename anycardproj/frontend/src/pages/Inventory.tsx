@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Card from "../components/Card";
 import { Card as CardType } from "@full-stack/types";
-import { getUserData } from "../api/cards";
+import { getUserData } from "../api/api";
 import { useAuth } from "../auth/authProvider";
 import { Search } from "@mynaui/icons-react";
 

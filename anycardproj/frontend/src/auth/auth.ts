@@ -1,6 +1,6 @@
 import { auth } from "./firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { createUser } from "../api/cards";
+import { createUser } from "../api/api";
 import { newUser } from "@full-stack/types";
 
 const provider = new GoogleAuthProvider();

@@ -5,7 +5,7 @@ import {
   createRandomSet,
   createDailyPacks,
   getCustomSetPrompt,
-} from "../api/cards";
+} from "../api/api";
 
 const WikipediaTestButton: React.FC = () => {
   const [query, setQuery] = useState("Albert Einstein");

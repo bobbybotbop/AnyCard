@@ -2,7 +2,7 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { PackModelMesh } from "./packModel";
-import { getAllCustomSets, openPack } from "../api/cards";
+import { getAllCustomSets, openPack } from "../api/api";
 import type { Set, Card } from "@full-stack/types";
 import { useAuth } from "../auth/authProvider";
 import CardDrawings from "./CardDrawings";

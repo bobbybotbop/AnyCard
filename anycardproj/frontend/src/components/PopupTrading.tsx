@@ -1,7 +1,7 @@
 import { Card } from "@full-stack/types";
 import { useNavigate } from "react-router-dom";
 import CardComponet from "../components/Card";
-import { requestTrade } from "../api/cards";
+import { requestTrade } from "../api/api";
 
 interface PopupProps {
   open: boolean;

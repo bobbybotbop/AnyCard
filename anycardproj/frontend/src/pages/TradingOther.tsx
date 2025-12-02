@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { userData, Card } from "@full-stack/types";
-import { getUserData } from "../api/cards";
+import { getUserData } from "../api/api";
 import { useParams } from "react-router-dom";
 import CardComponent from "../components/Card";
 import PopupTrading from "../components/PopupTrading";

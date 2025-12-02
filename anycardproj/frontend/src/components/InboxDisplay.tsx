@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAllTrades } from "../api/cards";
+import { getAllTrades } from "../api/api";
 import { requestUser, sentUser } from "@full-stack/types";
 import RequestTradeMail from "../components/RequestTradeMail";
 

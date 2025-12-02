@@ -1,5 +1,5 @@
 import { requestUser, sentUser } from "@full-stack/types";
-import { respondTrade } from "../api/cards";
+import { respondTrade } from "../api/api";
 
 interface InputProps {
   mail: requestUser | sentUser;

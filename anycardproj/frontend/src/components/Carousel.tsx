@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 import { PackModelMesh } from "./packModel";
-import { getAllSets } from "../api/cards";
+import { getAllSets } from "../api/api";
 import type { Set } from "@full-stack/types";
 import diffuseTextureUrl from "../assets/trading-card-pack/textures/DIFFUSE.png?url";
 import normalTextureUrl from "../assets/trading-card-pack/textures/optional_NORMAL.png?url";

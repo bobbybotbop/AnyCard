@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authProvider";
-import { getUserData } from "../api/cards";
+import { getUserData } from "../api/api";
 import Card from "../components/Card";
 import { Card as CardType } from "@full-stack/types";
 // import WikipediaTestButton from "../components/WikipediaTestButton";

@@ -1,5 +1,5 @@
 import { userData } from "@full-stack/types";
-import { getAllUsers, getUserData } from "../api/cards";
+import { getAllUsers, getUserData } from "../api/api";
 import TradeUserDisplay from "../components/TradeUserDisplay";
 import { useEffect, useState } from "react";
 
