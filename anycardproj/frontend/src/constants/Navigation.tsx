@@ -12,6 +12,7 @@ import {
   Package,
   LogIn,
   ArrowLeftRight,
+  Mail,
 } from "lucide-react";
 
 /**
@@ -70,6 +71,6 @@ export const PATHS: {
     link: "/inbox",
     label: "Inbox",
     component: Inbox,
-    icon: LogIn,
+    icon: Mail,
   },
 ];
