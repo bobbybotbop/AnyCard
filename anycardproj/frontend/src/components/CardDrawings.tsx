@@ -92,15 +92,16 @@ export default function CardDrawings({ cards, onClose }: CardDrawingsProps) {
 
         // Calculate transform values for staggered effect
         // Cards behind the top card are offset, scaled, rotated, and have reduced opacity
+        const baseScale = 1.5; // Increased base scale for larger cards
         const offsetX = position * 15; // Horizontal offset: 0px, 15px, 30px, 45px
         const offsetY = position * 8; // Vertical offset: 0px, 8px, 16px, 24px
-        const scale = 1 - position * 0.03; // Scale: 100%, 97%, 94%, 91%
+        const scale = baseScale * (1 - position * 0.03); // Scale: 150%, 145.5%, 141%, 136.5%
         const rotation = position * 1.5; // Rotation: 0°, 1.5°, 3°, 4.5°
         const opacity = Math.max(0.3, 1 - position * 0.15); // Opacity: 100%, 85%, 70%, 55% (min 30%)
 
         // Exit animation: slide left, move up, rotate, and fade out
         const exitTransform = isExiting
-          ? "translateX(-300px) translateY(-50px) rotate(-15deg) scale(0.8)"
+          ? "translateX(-300px) translateY(-50px) rotate(-15deg) scale(1.2)"
           : `translateX(${offsetX}px) translateY(${offsetY}px) scale(${scale}) rotate(${rotation}deg)`;
         const exitOpacity = isExiting ? 0 : opacity;
 

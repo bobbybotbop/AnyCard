@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/authProvider";
 import { getUserData } from "../api/cards";
-import WikipediaTestButton from "../components/WikipediaTestButton";
+import Card from "../components/Card";
+import { Card as CardType } from "@full-stack/types";
+// import WikipediaTestButton from "../components/WikipediaTestButton";
+
+const rarityRank: Record<string, number> = {
+  common: 1,
+  uncom: 2,
+  rare: 3,
+  epic: 4,
+  legend: 5,
+  mythic: 6,
+};
 
 const Profile = () => {
   const { user } = useAuth();
@@ -22,7 +33,7 @@ const Profile = () => {
     legend: 0,
     mythic: 0,
   });
-  const [inventoryPreview, setInventoryPreview] = useState<any[]>([]);
+  const [inventoryPreview, setInventoryPreview] = useState<CardType[]>([]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -33,7 +44,7 @@ const Profile = () => {
       }
       try {
         const userData = await getUserData(user.uid);
-        const { username, level, cards, favoriteCards } = userData;
+        const { username, level, cards } = userData;
 
         // Update profile data
         setProfileData({
@@ -63,8 +74,20 @@ const Profile = () => {
 
         setCardsCollected(stats);
 
-        // Set favorite cards as inventory preview
-        setInventoryPreview(favoriteCards || []);
+        // Get the 4 rarest cards from inventory
+        const rarestCards = cards
+          ? [...cards]
+              .sort((a, b) => {
+                const aRank = rarityRank[a.rarity?.toLowerCase()] ?? 0;
+                const bRank = rarityRank[b.rarity?.toLowerCase()] ?? 0;
+                if (aRank === bRank) {
+                  return a.name.localeCompare(b.name);
+                }
+                return bRank - aRank; // Sort highest rarity first
+              })
+              .slice(0, 4)
+          : [];
+        setInventoryPreview(rarestCards);
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -104,7 +127,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-400 to-white p-6">
       <div className=" mt-[9vh] w-[90%] mx-auto">
-        <WikipediaTestButton />
+        {/* <WikipediaTestButton /> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Profile Info Card */}
@@ -169,7 +192,7 @@ const Profile = () => {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-800">
-                Favorite Cards
+                Rarest Cards
               </h2>
               <Link
                 to="/inventory"
@@ -183,34 +206,16 @@ const Profile = () => {
                 inventoryPreview.slice(0, 4).map((card, index) => (
                   <div
                     key={index}
-                    className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-gray-300 transition-colors"
+                    className="flex items-center justify-center h-[200px] w-full overflow-hidden"
                   >
-                    <div className="aspect-square bg-gradient-to-b from-blue-200 to-blue-300 rounded mb-2 overflow-hidden">
-                      <img
-                        src={card.picture || ""}
-                        alt={card.name || "Card"}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                        }}
-                      />
+                    <div className="scale-[0.5] origin-center">
+                      <Card card={card} enableTilt={true} />
                     </div>
-                    <div className="text-xs font-semibold text-gray-800 truncate mb-1">
-                      {card.name || "Unknown Card"}
-                    </div>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[0.5rem] font-bold uppercase ${
-                        rarityColors[card.rarity] || rarityColors.common
-                      }`}
-                    >
-                      {card.rarity || "common"}
-                    </span>
                   </div>
                 ))
               ) : (
                 <div className="col-span-2 text-center text-gray-500 py-4">
-                  No favorite cards yet
+                  No cards in inventory yet
                 </div>
               )}
             </div>
