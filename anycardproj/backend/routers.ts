@@ -284,6 +284,9 @@ router.post("/api/requestTrade/:userUID", async (req, res) => {
   const { userUID } = req.params;
   const { sentUserUID, wantedCard, givenCard } = req.body;
 
+  console.log(sentUserUID);
+  console.log(wantedCard);
+  console.log(givenCard);
   if (!userUID) {
     return res.status(400).json({ error: "userUid required" });
   }

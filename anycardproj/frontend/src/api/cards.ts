@@ -267,3 +267,30 @@ export const getAllUsers = async (uid: string): Promise<userData[]> => {
 
   return response.json();
 };
+
+export const requestTrade = async (
+  wantCard: Card,
+  giveCard: Card,
+  userUID: string,
+  sentUserUID: string
+): Promise<void> => {
+  const wantedCard = wantCard;
+  const givenCard = giveCard;
+  console.log(wantCard);
+  console.log(giveCard);
+  console.log(userUID);
+  console.log(sentUserUID);
+
+  const response = await fetch(
+    `${BACKEND_BASE_PATH}/api/requestTrade/${userUID}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ sentUserUID, wantedCard, givenCard }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get it");
+  }
+};

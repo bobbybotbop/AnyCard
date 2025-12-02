@@ -1,6 +1,7 @@
-import { Card, MyResponse } from "@full-stack/types";
+import { Card } from "@full-stack/types";
 import { useNavigate } from "react-router-dom";
 import CardComponet from "../components/Card";
+import { requestTrade } from "../api/cards";
 
 interface PopupProps {
   open: boolean;
@@ -22,11 +23,16 @@ const PopupTrading = ({
   const navigate = useNavigate();
   if (!open) return null;
 
-  function onInitiateTrade(res: MyResponse) {
-    if (res == "accepted") {
-      console.log("accepted");
-    } else {
-      console.log("rejected");
+  async function onInitiateTrade(wantToTrade: boolean) {
+    if (!wantCard || !giveCard) return null;
+
+    if (wantToTrade) {
+      try {
+        await requestTrade(wantCard, giveCard, userUID, sentUserUID);
+        console.log("successful");
+      } catch (error: any) {
+        console.log(error);
+      }
     }
 
     onClose();
@@ -73,7 +79,7 @@ const PopupTrading = ({
         {/* Buttons */}
         <div className="mt-6 flex justify-between gap-4">
           <button
-            onClick={() => onInitiateTrade("accepted")}
+            onClick={() => onInitiateTrade(true)}
             disabled={!wantCard || !giveCard}
             className={`w-1/2 py-2 rounded-lg font-semibold text-white ${
               wantCard && giveCard
@@ -85,7 +91,7 @@ const PopupTrading = ({
           </button>
 
           <button
-            onClick={() => onInitiateTrade("rejected")}
+            onClick={() => onInitiateTrade(false)}
             className="w-1/2 py-2 rounded-lg font-semibold bg-red-500 text-white hover:bg-red-600"
           >
             Cancel
