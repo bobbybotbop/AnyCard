@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "nodemon server.ts",
-    "build": "pnpm exec -- tsc"
+    "build": "cd .. && pnpm exec -- tsc --project backend/tsconfig.json"
   },
   "description": "",
   "keywords": [],
