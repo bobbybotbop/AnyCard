@@ -1,7 +1,5 @@
 import AllUsersDisplay from "../components/AllUsersDisplay";
-import { cardSets } from "../data/cards";
 import { useAuth } from "../auth/authProvider";
-import { userData } from "@full-stack/types";
 
 const Trading = () => {
   const { user } = useAuth();

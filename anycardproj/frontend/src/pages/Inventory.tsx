@@ -148,7 +148,7 @@ const Inventory = () => {
   return (
     <main className="min-h-screen p-8 bg-gradient-to-b from-blue-400 to-white">
       <div className="mt-[8vh] w-[90%] mx-auto">
-        {/* Search Bar */}
+        {/* Search Bar */}f
 
         <div className="flex flex-row justify-center mt-8 mb-4">
           <div className="relative w-[50%] my-auto mr-10">

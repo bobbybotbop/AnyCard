@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { userData, Card } from "@full-stack/types";
+import { userData } from "@full-stack/types";
 import { useNavigate } from "react-router-dom";
 import CardComponent from "../components/Card";
 
@@ -12,11 +11,9 @@ export default function TradeUserDisplay({
   currentUser,
   otherUser,
 }: TradeUserDisplayProps) {
-  const [selectedUser, setSelectedUser] = useState<userData | null>(null);
   const navigate = useNavigate();
 
   const handleCardClick = (user: userData) => {
-    setSelectedUser(user);
     console.log("Selected user:", user);
     const otherUID = user.UID;
     const userUID = currentUser.UID;
