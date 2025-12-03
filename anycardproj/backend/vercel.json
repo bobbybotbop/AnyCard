@@ -1,5 +1,5 @@
 {
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm exec tsc --project backend/tsconfig.json",
+  "buildCommand": "pnpm --filter backend build",
   "outputDirectory": "backend/dist"
 }
