@@ -35,6 +35,7 @@ const allowedOrigins = [
   "https://any-card-j55v.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://anycard-backend.vercel.app/",
 ];
 
 // Add environment variable support for additional origins
