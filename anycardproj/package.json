@@ -10,7 +10,8 @@
         "@types/uuid": "^10.0.0",
         "eslint": "^8.48.0",
         "prettier": "^3.0.3",
-        "turbo": "latest"
+        "turbo": "latest",
+        "typescript": "^4.9.5"
     },
     "packageManager": "pnpm@8.6.10",
     "name": "full-stack",
