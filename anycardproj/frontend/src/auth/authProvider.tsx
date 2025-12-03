@@ -1,5 +1,6 @@
 import { User } from "firebase/auth";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { auth } from "./firebase";
 
 type AuthData = {
   user: User | null;
@@ -12,18 +13,26 @@ export const AuthUserProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [user, _setUser] = useState<AuthData>({ user: null });
+  const [user, setUser] = useState<AuthData>({ user: null });
+  const isInitialMount = useRef(true);
 
-  // Commented out automatic login if already logged in
-  // useEffect(() => {
-  //   auth.onAuthStateChanged(async (userAuth) => {
-  //     if (userAuth) {
-  //       setUser({ user: userAuth });
-  //     } else {
-  //       setUser({ user: null });
-  //     }
-  //   });
-  // }, []);
+  useEffect(() => {
+    auth.onAuthStateChanged(async (userAuth) => {
+      // Skip automatic login on initial mount if user is already logged in
+      if (isInitialMount.current && userAuth) {
+        isInitialMount.current = false;
+        return; // Don't set user on initial load if already logged in
+      }
+      
+      // Allow all subsequent auth changes (explicit login/logout)
+      isInitialMount.current = false;
+      if (userAuth) {
+        setUser({ user: userAuth });
+      } else {
+        setUser({ user: null });
+      }
+    });
+  }, []);
 
   return (
     <AuthUserContext.Provider value={user}>{children}</AuthUserContext.Provider>
