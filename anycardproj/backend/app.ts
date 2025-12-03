@@ -26,8 +26,16 @@ if (!admin.apps.length) {
 // Create Express app
 const app: Express = express();
 
-// Middleware
-app.use(cors());
+// Configure CORS with proper headers for OAuth popups
+app.use(cors({
+  origin: true, // Allow all origins (you can restrict this to your frontend URL in production)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+}));
+
 app.use(express.json());
 
 // Use routes

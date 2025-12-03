@@ -1,33 +1,46 @@
-# Use Nginx base image
-FROM nginx:stable-alpine
+# Use Node.js LTS version
+FROM node:18-slim
 
-# Install Node 20 and gettext (for envsubst)
-RUN apk add --update nodejs npm gettext
+# Install pnpm globally (matching your packageManager version)
+RUN npm install -g pnpm@8.6.10
 
-# Install pnpm
-RUN npm install -g pnpm
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-# Set the working directory in the builder
+# Set working directory
 WORKDIR /app
 
-# Copy the entire monorepo and install dependencies and build
-COPY . .
-RUN rm -rf node_modules **/node_modules
-RUN pnpm install
-RUN pnpm run build
+# Copy workspace configuration files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
-# Copy necessary build outputs and dependencies to nginx
-RUN cp -r ./frontend/dist/* /usr/share/nginx/html/
-COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+# Copy lib package.json files (needed for workspace resolution)
+COPY lib/common/package.json ./lib/common/
+COPY lib/types/package.json ./lib/types/
 
-# Expose the port Nginx is running on
-EXPOSE 80
-EXPOSE 443
+# Copy backend package.json
+COPY backend/package.json ./backend/
 
-# Install PM2
-RUN npm install -g pm2
+# Install all dependencies (pnpm will handle workspace dependencies)
+RUN pnpm install --frozen-lockfile
 
-# Use the start script as the entrypoint
-ENTRYPOINT ["./start.sh"]
+# Copy source files for lib packages
+COPY lib/common/ ./lib/common/
+COPY lib/types/ ./lib/types/
+
+# Copy backend source files
+COPY backend/ ./backend/
+
+# Copy TypeScript configs if needed
+COPY tsconfig.json ./
+COPY lib/common/tsconfig.json ./lib/common/
+COPY lib/types/tsconfig.json ./lib/types/
+COPY backend/tsconfig.json ./backend/
+
+# Build workspace packages and backend
+RUN pnpm build
+
+# Expose the port (Google Cloud Run will set PORT env var)
+EXPOSE 8080
+
+# Set working directory to backend for runtime
+WORKDIR /app/backend
+
+# Start the server (using dist output)
+CMD ["node", "dist/server.js"]

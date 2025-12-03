@@ -5,7 +5,8 @@
     "strict": true,
     "declaration": true,
     "outDir": "./dist",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
   "include": ["*.ts", "../frontend/src/auth/firebase.ts"]
 }

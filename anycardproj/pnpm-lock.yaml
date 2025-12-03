@@ -36,8 +36,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
       uuid:
-        specifier: ^13.0.0
-        version: 13.0.0
+        specifier: ^9.0.1
+        version: 9.0.1
     devDependencies:
       '@types/uuid':
         specifier: ^10.0.0
@@ -55,10 +55,10 @@ importers:
   backend:
     dependencies:
       '@full-stack/common':
-        specifier: 1.0.0
+        specifier: workspace:*
         version: link:../lib/common
       '@full-stack/types':
-        specifier: 1.0.0
+        specifier: workspace:*
         version: link:../lib/types
       cors:
         specifier: ^2.8.5
@@ -9310,11 +9310,6 @@ packages:
   /utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
-    dev: false
-
-  /uuid@13.0.0:
-    resolution: {integrity: sha512-XQegIaBTVUjSHliKqcnFqYypAd4S+WCYt5NIeRs6w/UAry7z8Y9j5ZwRRL4kzq9U3sD6v+85er9FvkEaBpji2w==}
-    hasBin: true
     dev: false
 
   /uuid@8.3.2:

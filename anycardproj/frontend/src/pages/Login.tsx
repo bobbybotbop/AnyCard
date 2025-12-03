@@ -1,11 +1,21 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import googleLogo from "../assets/googleLogo.svg";
 import { BackgroundBeams } from "../components/ui/background-beams";
 import { signin } from "../auth/auth";
+import { useAuth } from "../auth/authProvider";
 import anyCardLogo from "/anyCardLogo.png?url";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Navigate to home after successful authentication (redirect completion)
+  useEffect(() => {
+    if (user) {
+      navigate("/home");
+    }
+  }, [user, navigate]);
   //   const [showPassword, setShowPassword] = useState(false);
   //   const [rememberDevice, setRememberDevice] = useState(false);
 
@@ -239,11 +249,10 @@ export default function LoginPage() {
                 className="in w-full flex items-center justify-center bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-colors duration-300 py-4 text-base rounded-lg"
                 onClick={async () => {
                   try {
+                    // Redirect-based auth - will redirect to Google and come back
                     await signin();
-                    // Redirect to homepage after successful login
-                    navigate("/home");
+                    // Note: Page will redirect immediately, so code below won't run
                   } catch (error) {
-                    // Error handling is done in the signin function
                     console.error("Login failed:", error);
                   }
                 }}

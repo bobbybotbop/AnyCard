@@ -10,3 +10,4 @@ console.log(encoded);
 console.log(
   "\n=== Copy this value to Vercel environment variable: FIREBASE_SERVICE_ACCOUNT ===\n"
 );
+

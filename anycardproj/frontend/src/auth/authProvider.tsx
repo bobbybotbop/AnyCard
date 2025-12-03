@@ -1,6 +1,7 @@
 import { User } from "firebase/auth";
 import { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "./firebase";
+import { checkRedirectResult } from "./auth";
 
 type AuthData = {
   user: User | null;
@@ -16,6 +17,11 @@ export const AuthUserProvider = ({
   const [user, setUser] = useState<AuthData>({ user: null });
 
   useEffect(() => {
+    // Check for redirect result on mount (after OAuth redirect)
+    checkRedirectResult().catch((error) => {
+      console.error("Error checking redirect result:", error);
+    });
+
     auth.onAuthStateChanged(async (userAuth) => {
       if (userAuth) {
         setUser({ user: userAuth });
