@@ -4,7 +4,7 @@ import { Outlet, useLocation } from "react-router-dom";
 
 const RootLayout = () => {
   const location = useLocation();
-  const isLoginPage = location.pathname === "/login";
+  const isLoginPage = location.pathname === "/";
 
   return (
     <div className="flex min-h-screen w-full flex-col">

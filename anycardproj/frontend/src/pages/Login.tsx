@@ -241,7 +241,7 @@ export default function LoginPage() {
                   try {
                     await signin();
                     // Redirect to homepage after successful login
-                    navigate("/");
+                    navigate("/home");
                   } catch (error) {
                     // Error handling is done in the signin function
                     console.error("Login failed:", error);

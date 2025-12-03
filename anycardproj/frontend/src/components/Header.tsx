@@ -32,7 +32,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
       <div className=" flex border-b-1 border-white/50 p-0 m-0">
         {/* Left Navigation Icons */}
         <div className="flex items-center w-[40vw] justify-end gap-16 pr-16">
-          <Link to="/" className="text-white" title="Home">
+          <Link to="/home" className="text-white" title="Home">
             <Home className="w-6 h-6 flex-shrink-0" />
           </Link>
           <Link to="/profile" className="text-white" title="Profile">

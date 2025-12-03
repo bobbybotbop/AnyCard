@@ -40,6 +40,12 @@ export const PATHS: {
 }[] = [
   {
     link: "/",
+    label: "login",
+    component: LoginPage,
+    icon: LogIn,
+  },
+  {
+    link: "/home",
     label: "Home",
     component: HomePage,
     icon: Home,
@@ -61,12 +67,6 @@ export const PATHS: {
     label: "Trading",
     component: Trading,
     icon: ArrowLeftRight,
-  },
-  {
-    link: "/login",
-    label: "login",
-    component: LoginPage,
-    icon: LogIn,
   },
   {
     link: "/inbox",
