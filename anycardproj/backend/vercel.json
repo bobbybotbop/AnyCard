@@ -2,4 +2,3 @@
   "buildCommand": "pnpm build --filter backend",
   "outputDirectory": "backend/dist"
 }
-
