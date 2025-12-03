@@ -1,5 +1,8 @@
 {
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm exec tsc --project backend/tsconfig.json",
-  "outputDirectory": "backend/dist"
+  "buildCommand": "pnpm install",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }

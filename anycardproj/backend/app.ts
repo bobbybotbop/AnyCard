@@ -13,7 +13,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   serviceAccount = JSON.parse(decoded);
 } else {
   // Fallback to file (for local development)
-  serviceAccount = require("../secrets/ACFire.json");
+  serviceAccount = require("./secrets/ACFire.json");
 }
 
 // Initialize Firebase
