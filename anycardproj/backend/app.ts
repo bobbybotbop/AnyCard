@@ -35,7 +35,7 @@ const allowedOrigins = [
   "https://any-card-j55v.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://anycard-backend.vercel.app/",
+  "https://anycard-backend.vercel.app",
 ];
 
 // Add environment variable support for additional origins
@@ -72,8 +72,11 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
 
+  // Check if origin is allowed
+  const originAllowed = isOriginAllowed(origin);
+
   // When credentials: true, we must specify exact origin, not "*"
-  if (isOriginAllowed(origin) && origin) {
+  if (originAllowed && origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   } else if (!origin) {
@@ -82,6 +85,7 @@ app.use((req, res, next) => {
   }
   // If origin is not allowed, don't set CORS headers (will be blocked)
 
+  // Always set these headers for preflight requests
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS, PATCH"
@@ -92,8 +96,13 @@ app.use((req, res, next) => {
   );
   res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
 
-  // Handle preflight requests
+  // Handle preflight requests - must return early with proper headers
   if (req.method === "OPTIONS") {
+    // For preflight, ensure CORS headers are set if origin is allowed
+    if (originAllowed && origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    }
     return res.status(204).end();
   }
 
