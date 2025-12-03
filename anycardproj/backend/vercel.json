@@ -17,6 +17,9 @@
         {
           "key": "Access-Control-Max-Age",
           "value": "86400"
+        },
+        {
+          "Access-Control-Allow-Origin": "*"
         }
       ]
     }

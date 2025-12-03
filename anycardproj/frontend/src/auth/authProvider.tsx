@@ -15,15 +15,16 @@ export const AuthUserProvider = ({
 }) => {
   const [user, setUser] = useState<AuthData>({ user: null });
 
-  useEffect(() => {
-    auth.onAuthStateChanged(async (userAuth) => {
-      if (userAuth) {
-        setUser({ user: userAuth });
-      } else {
-        setUser({ user: null });
-      }
-    });
-  }, []);
+  // Commented out automatic login if already logged in
+  // useEffect(() => {
+  //   auth.onAuthStateChanged(async (userAuth) => {
+  //     if (userAuth) {
+  //       setUser({ user: userAuth });
+  //     } else {
+  //       setUser({ user: null });
+  //     }
+  //   });
+  // }, []);
 
   return (
     <AuthUserContext.Provider value={user}>{children}</AuthUserContext.Provider>

@@ -10,6 +10,9 @@
         {
           "key": "Cross-Origin-Embedder-Policy",
           "value": "unsafe-none"
+        },
+        {
+          "Access-Control-Allow-Origin": "*"
         }
       ]
     }
