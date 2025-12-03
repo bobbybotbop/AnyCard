@@ -1,6 +1,5 @@
 import { User } from "firebase/auth";
-import { createContext, useContext, useState, useEffect } from "react";
-import { auth } from "./firebase";
+import { createContext, useContext, useState } from "react";
 
 type AuthData = {
   user: User | null;
@@ -13,7 +12,7 @@ export const AuthUserProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [user, setUser] = useState<AuthData>({ user: null });
+  const [user, _setUser] = useState<AuthData>({ user: null });
 
   // Commented out automatic login if already logged in
   // useEffect(() => {
