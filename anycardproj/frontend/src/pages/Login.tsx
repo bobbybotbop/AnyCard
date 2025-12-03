@@ -61,7 +61,7 @@ export default function LoginPage() {
   //   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-400 to-white overflow-hidden">
+    <div className="min-h-screen bg-black overflow-hidden">
       {/* Animated Background Elements */}
       <BackgroundBeams />
 
