@@ -19,7 +19,8 @@
           "value": "86400"
         },
         {
-          "Access-Control-Allow-Origin": "*"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }

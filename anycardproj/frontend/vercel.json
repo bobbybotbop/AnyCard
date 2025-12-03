@@ -12,7 +12,8 @@
           "value": "unsafe-none"
         },
         {
-          "Access-Control-Allow-Origin": "*"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
