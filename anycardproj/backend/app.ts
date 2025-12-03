@@ -53,7 +53,7 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
   // Check exact matches
   if (allAllowedOrigins.includes(origin)) return true;
 
-  // Allow any Vercel preview deployment
+  // Allow any Vercel preview deployment (including production and preview URLs)
   if (origin.includes(".vercel.app")) return true;
 
   // Allow localhost for development
@@ -62,6 +62,11 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
     origin.startsWith("http://127.0.0.1:")
   ) {
     return true;
+  }
+
+  // Log disallowed origins for debugging (only in development)
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[CORS] Origin not allowed: ${origin}`);
   }
 
   return false;
@@ -112,9 +117,16 @@ app.use((req, res, next) => {
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
       if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
+        // Log for debugging
+        console.error(`[CORS] Blocked origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
