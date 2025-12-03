@@ -261,18 +261,29 @@ export const respondTrade = async (
   userUid: string,
   tradeId: string
 ): Promise<boolean> => {
-  const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ tradeId, response }),
-  });
-  if (!a.ok) {
-    const error = await a.json();
-    throw new Error(error.error || "Response failed");
+  console.log(`[API] respondTrade called - userUid: ${userUid}, tradeId: ${tradeId}, response: ${response}`);
+  console.log(`[API] Making fetch request to: ${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`);
+  try {
+    const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ tradeId, response }),
+    });
+    console.log(`[API] Fetch request completed - status: ${a.status}, ok: ${a.ok}`);
+    if (!a.ok) {
+      const error = await a.json();
+      console.error(`[API] respondTrade failed - status: ${a.status}, error:`, error);
+      throw new Error(error.error || "Response failed");
+    }
+    const result = await a.json();
+    console.log(`[API] respondTrade successful - result:`, result);
+    return result;
+  } catch (error) {
+    console.error(`[API] respondTrade exception - userUid: ${userUid}, tradeId: ${tradeId}:`, error);
+    throw error;
   }
-  return a.json();
 };
 
 export const getAllUsers = async (uid: string): Promise<userData[]> => {

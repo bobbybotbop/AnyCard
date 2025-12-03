@@ -150,7 +150,7 @@ const Inventory = () => {
       <div className="mt-[8vh] w-[90%] mx-auto">
         {/* Search Bar */}
 
-        <div className="flex flex-row justify-start mt-8 mb-4 ">
+        <div className="flex flex-row justify-center mt-8 mb-4">
           <div className="relative w-[50%] my-auto mr-10">
             <input
               type="text"

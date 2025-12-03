@@ -43,6 +43,16 @@ export async function createDocumentWithId(
 
 export async function createUser(data: newUser): Promise<userData | null> {
   try {
+    // Check if user already exists
+    const userDoc = await db.collection("users").doc(data.UID).get();
+
+    if (userDoc.exists) {
+      // User already exists, don't overwrite their data
+      console.log(`User ${data.UID} already exists, skipping creation`);
+      return null;
+    }
+
+    // User doesn't exist, create new user
     await createDocumentWithId("users", data.UID, {
       username: data.username,
       email: data.email,
@@ -883,18 +893,21 @@ export async function respondTrade(
 
     if (tradeStatus === "accepted") {
       // User A (Responder) card swap
+      // From responder's perspective: wantedCard is what the requester wants (responder gives this)
+      // and givenCard is what the requester gives (responder receives this)
       const cardToGiveIndexA = newUserDataCards.findIndex(
-        (c) => c.name === userTrade.givenCard.name
+        (c) => c.name === userTrade.wantedCard.name
       );
       if (cardToGiveIndexA === -1) {
         throw new Error(
-          `Responder User ${userUID} does not have card to give: ${userTrade.givenCard.name}`
+          `Responder User ${userUID} does not have card to give: ${userTrade.wantedCard.name}`
         );
       }
-      newUserDataCards.splice(cardToGiveIndexA, 1); // Give away
-      newUserDataCards.push(userTrade.wantedCard); // Receive
+      newUserDataCards.splice(cardToGiveIndexA, 1); // Give away what requester wants
+      newUserDataCards.push(userTrade.givenCard); // Receive what requester gives
 
       // User B (Requester) card swap
+      // Requester gives givenCard and receives wantedCard
       const cardToGiveIndexB = newReqUserDataCards.findIndex(
         (c) => c.name === reqUserTrade.givenCard.name
       );

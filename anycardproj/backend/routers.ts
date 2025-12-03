@@ -462,8 +462,8 @@ router.delete("/api/respondTrade/:userUID", async (req, res) => {
   }
 
   try {
-    const result = await controllers.respondTrade(userUID, response, tradeId);
-    return result;
+    await controllers.respondTrade(userUID, response, tradeId);
+    return res.status(200).json({ success: true });
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
   }

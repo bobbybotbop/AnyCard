@@ -138,8 +138,8 @@ function Card({
     const width = imageData.width;
     const height = imageData.height;
 
-    // Sample every Nth pixel for efficiency
-    const sampleRate = 4;
+    // Increase sample rate from 4 to 8 or 10 for faster processing
+    const sampleRate = 8; // Changed from 4
     const colorMap = new Map<string, number>();
 
     for (let y = 0; y < height; y += sampleRate) {
@@ -195,32 +195,61 @@ function Card({
     return [primary, colors[1] || primary];
   };
 
+  // Add at the top of the file, outside the component
+  const colorCache = new Map<string, { primary: string; secondary: string }>();
+
   // Extract colors from image
   const extractColorsFromImage = (imageSrc: string, isFallback = false) => {
+    // Check cache first
+    const cached = colorCache.get(imageSrc);
+    if (cached) {
+      setPrimaryColor(cached.primary);
+      setSecondaryColor(cached.secondary);
+      return;
+    }
+
     const img = new Image();
     img.crossOrigin = "anonymous";
 
     img.onload = () => {
       try {
         const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
+        // Use smaller dimensions for faster processing
+        const maxDimension = 100; // Instead of full image size
+        const scale = Math.min(
+          maxDimension / img.width,
+          maxDimension / img.height
+        );
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const prominentColors = getProminentColors(imageData);
         const twoColors = findTwoDifferentColors(prominentColors);
 
         if (twoColors) {
           const [primary, secondary] = twoColors;
-          setPrimaryColor(rgbToHex(primary[0], primary[1], primary[2]));
-          setSecondaryColor(rgbToHex(secondary[0], secondary[1], secondary[2]));
+          const primaryHex = rgbToHex(primary[0], primary[1], primary[2]);
+          const secondaryHex = rgbToHex(
+            secondary[0],
+            secondary[1],
+            secondary[2]
+          );
+
+          // Cache the result
+          colorCache.set(imageSrc, {
+            primary: primaryHex,
+            secondary: secondaryHex,
+          });
+
+          setPrimaryColor(primaryHex);
+          setSecondaryColor(secondaryHex);
         }
       } catch (error) {
         console.error("Error extracting colors:", error);
-        // Keep default colors on error
       }
     };
 
@@ -346,7 +375,9 @@ function Card({
 
   // Extract colors when image loads
   useEffect(() => {
-    const currentImageSrc = imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture);
+    const currentImageSrc = imageError
+      ? "/ImageNotFound.jpg"
+      : proxyImageUrl(card.picture);
     extractColorsFromImage(currentImageSrc);
   }, [card.picture, imageError]);
 
@@ -489,7 +520,9 @@ function Card({
   const cardContent = (
     <div
       ref={isHolographic ? holoRef : undefined}
-      className={`${autoScale ? "" : "w-[245px] h-[342px]"} rounded-lg p-1 shadow-lg relative ${
+      className={`${
+        autoScale ? "" : "w-[245px] h-[342px]"
+      } rounded-lg p-1 shadow-lg relative ${
         isHolographic ? "card-holographic" : ""
       }`}
       style={{
@@ -615,7 +648,11 @@ function Card({
             >
               <img
                 ref={imageRef}
-                src={imageError ? "/ImageNotFound.jpg" : proxyImageUrl(card.picture)}
+                src={
+                  imageError
+                    ? "/ImageNotFound.jpg"
+                    : proxyImageUrl(card.picture)
+                }
                 alt={card.name}
                 className="w-full h-full object-contain object-center rounded-sm"
                 onError={() => setImageError(true)}

@@ -57,7 +57,7 @@ export function HeaderSimple({ links }: HeaderSimpleProps) {
           <Link to="/trading" className="text-white" title="Trading">
             <ArrowLeftRight className="w-6 h-6 flex-shrink-0" />
           </Link>
-          <Link to="/inbox" className="text-white" title="Inbox">
+          <Link to="/inbox" className="text-white ml-auto mr-10" title="Inbox">
             <Mail className="w-6 h-6 flex-shrink-0" />
           </Link>
           {/* <img className="h-10 w-auto ml-2" src={logo} alt="AnyCard Logo" /> */}
