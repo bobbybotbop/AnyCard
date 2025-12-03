@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd .. && pnpm install",
-  "buildCommand": "pnpm build"
+  "buildCommand": "pnpm build --filter backend",
+  "outputDirectory": "backend/dist"
 }
 

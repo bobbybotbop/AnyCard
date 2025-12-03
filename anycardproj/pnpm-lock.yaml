@@ -55,10 +55,10 @@ importers:
   backend:
     dependencies:
       '@full-stack/common':
-        specifier: 1.0.0
+        specifier: workspace:*
         version: link:../lib/common
       '@full-stack/types':
-        specifier: 1.0.0
+        specifier: workspace:*
         version: link:../lib/types
       cors:
         specifier: ^2.8.5
