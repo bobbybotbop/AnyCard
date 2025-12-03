@@ -449,4 +449,24 @@ router.post("/api/requestTrade/:userUID", async (req, res) => {
   }
 });
 
+router.delete("/api/respondTrade/:userUID", async (req, res) => {
+  const { userUID } = req.params;
+  const { response, tradeId } = req.body;
+
+  if (!userUID) {
+    return res.status(400).json({ error: "userUid required" });
+  }
+
+  if (!response || !tradeId) {
+    return res.status(400).json({ error: "invalid body" });
+  }
+
+  try {
+    const result = await controllers.respondTrade(userUID, response, tradeId);
+    return result;
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;

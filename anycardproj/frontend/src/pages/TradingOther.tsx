@@ -54,7 +54,7 @@ const TradingOther = () => {
   }, [userUID, otherUID]);
 
   const handleCardClick = (card: Card) => {
-    if (currentSelection == "Want") {
+    if (currentSelection === "Want") {
       setCurrentSelection("Give");
       setUserWantCard(card);
       console.log("User wanted card:", card);
@@ -63,6 +63,13 @@ const TradingOther = () => {
       setPopupOpen(true);
       console.log("User given card:", card);
     }
+  };
+
+  const handleClosePopup = () => {
+    setPopupOpen(false);
+    setCurrentSelection("Want"); // Reset back to Want
+    setUserWantCard(null); // Clear selections
+    setUserGivenCard(null);
   };
 
   if (loading) {
@@ -97,7 +104,7 @@ const TradingOther = () => {
     );
   }
 
-  const user = currentSelection == "Want" ? otherUser : currentUser;
+  const user = currentSelection === "Want" ? otherUser : currentUser;
   return (
     <div className="min-h-screen p-8 pt-24 bg-gradient-to-b from-blue-400 to-white overflow-x-hidden">
       <div className="w-[90%] max-w-7xl mx-auto">
@@ -131,7 +138,7 @@ const TradingOther = () => {
       </div>
       <PopupTrading
         open={popupOpen}
-        onClose={() => setPopupOpen(false)}
+        onClose={() => handleClosePopup}
         wantCard={userWantCard}
         giveCard={userGivenCard}
         userUID={currentUser.UID}

@@ -13,10 +13,11 @@ export interface userData {
   level: number;
   cards: any[];
   favoriteCards: any[];
-  sentTrade?: sentUser[];
-  requestedTrade?: requestUser[];
+  sentTrade?: otherUser[];
+  requestedTrade?: otherUser[];
 }
 
+export type mailType = "send" | "request";
 export type Rarity = "common" | "uncom" | "rare" | "epic" | "legend" | "mythic";
 
 export type Status = "pending" | "rejected" | "accepted";
@@ -48,26 +49,34 @@ export interface Set {
   coverImage: string;
   cards: Card[];
 }
-
-export interface sentUser {
+export interface otherUser {
+  type: mailType;
   tradeId: string;
-  sentUserUID: string;
+  otherUserUID: string;
   wantedCard: Card;
   givenCard: Card;
   status: Status;
   date: Date;
-  type?: "sentUser";
 }
+// export interface sentUser {
+//   type: "send";
+//   tradeId: string;
+//   sentUserUID: string;
+//   wantedCard: Card;
+//   givenCard: Card;
+//   status: Status;
+//   date: Date;
+// }
 
-export interface requestUser {
-  tradeId: string;
-  requestedUserUID: string;
-  wantedCard: Card;
-  givenCard: Card;
-  status: Status;
-  date: Date;
-  type?: "requestUser";
-}
+// export interface requestUser {
+//   type: "request";
+//   tradeId: string;
+//   requestedUserUID: string;
+//   wantedCard: Card;
+//   givenCard: Card;
+//   status: Status;
+//   date: Date;
+// }
 
 export interface WeatherResponse {
   raining: boolean;
