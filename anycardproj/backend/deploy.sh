@@ -7,12 +7,15 @@ echo "Deploying to Google Cloud Run..."
 # Make sure project is set
 gcloud config set project anycardbackend
 
+git checkout debugBackDeploy
+git pull origin debugBackDeploy
+
 # Build and deploy to Cloud Run
 gcloud run deploy anycard-server \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
   --min-instances=0 \
-  --cpu-throttling
-
+  --cpu-throttling 
+  
 echo "Deployment complete!"
