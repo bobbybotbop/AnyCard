@@ -1,33 +1,19 @@
-# Use Nginx base image
-FROM nginx:stable-alpine
+FROM node:22-alpine
 
-# Install Node 20 and gettext (for envsubst)
-RUN apk add --update nodejs npm gettext
-
-# Install pnpm
-RUN npm install -g pnpm
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-# Set the working directory in the builder
 WORKDIR /app
 
-# Copy the entire monorepo and install dependencies and build
+# Copy package.json and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
 COPY . .
-RUN rm -rf node_modules **/node_modules
-RUN pnpm install
-RUN pnpm run build
 
-# Copy necessary build outputs and dependencies to nginx
-RUN cp -r ./frontend/dist/* /usr/share/nginx/html/
-COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+# Build TypeScript
+RUN npm run build   # assumes "build": "tsc"
 
-# Expose the port Nginx is running on
-EXPOSE 80
-EXPOSE 443
+# Expose the port Cloud Run expects
+EXPOSE 8080
 
-# Install PM2
-RUN npm install -g pm2
-
-# Use the start script as the entrypoint
-ENTRYPOINT ["./start.sh"]
+# Start server directly (no start.sh)
+CMD ["node", "dist/server.js"]
