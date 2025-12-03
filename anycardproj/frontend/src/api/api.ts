@@ -4,8 +4,7 @@ import {
   userData,
   Set,
   Card,
-  requestUser,
-  sentUser,
+  otherUser,
   MyResponse,
 } from "@full-stack/types";
 
@@ -243,13 +242,13 @@ export const getAllCustomSets = async (): Promise<Set[]> => {
   return response.json();
 };
 
-export const getAllTrades = async (
-  uid: string
-): Promise<(requestUser | sentUser)[]> => {
+export const getAllTrades = async (uid: string): Promise<otherUser[]> => {
   const response = await fetch(`${BACKEND_BASE_PATH}/api/getAllTrades/${uid}`, {
     method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
-
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to get any of users trades");
@@ -261,11 +260,11 @@ export const respondTrade = async (
   response: MyResponse,
   userUid: string,
   tradeId: string
-): Promise<void> => {
+): Promise<boolean> => {
   const a = await fetch(`${BACKEND_BASE_PATH}/api/respondTrade/${userUid}`, {
     method: "DELETE",
     headers: {
-      "Content-Type": "application/json", // ADD THIS
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ tradeId, response }),
   });
@@ -273,6 +272,7 @@ export const respondTrade = async (
     const error = await a.json();
     throw new Error(error.error || "Response failed");
   }
+  return a.json();
 };
 
 export const getAllUsers = async (uid: string): Promise<userData[]> => {
@@ -298,10 +298,6 @@ export const requestTrade = async (
 ): Promise<void> => {
   const wantedCard = wantCard;
   const givenCard = giveCard;
-  console.log(wantCard);
-  console.log(giveCard);
-  console.log(userUID);
-  console.log(sentUserUID);
 
   const response = await fetch(
     `${BACKEND_BASE_PATH}/api/requestTrade/${userUID}`,

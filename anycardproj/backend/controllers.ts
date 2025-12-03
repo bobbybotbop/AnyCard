@@ -7,8 +7,9 @@ import {
   Attack,
   Status,
   MyResponse,
-  sentUser,
-  requestUser,
+  otherUser,
+  // sentUser,
+  // requestUser,
 } from "@full-stack/types";
 import fetch from "node-fetch";
 import {
@@ -72,7 +73,7 @@ export async function getUserData(uid: string): Promise<userData | null> {
       cards: data?.cards || [],
       favoriteCards: data?.favoriteCards || [],
       sentTrade: data?.sentTrade || [],
-      requestedTrade: data?.requestTrade || [],
+      requestedTrade: data?.requestedTrade || [],
     };
   } catch (error) {
     throw error;
@@ -133,13 +134,12 @@ export async function getAllTrades(uid: string) {
   const userData = await getUserData(uid);
   if (!userData) throw Error("User not found!");
 
-  let reqAndSent: (requestUser | sentUser)[] = [];
+  let reqAndSent: otherUser[] = [];
   console.log(userData.requestedTrade?.length);
+  console.log(userData.sentTrade?.length);
   if (userData.requestedTrade) reqAndSent = [...userData.requestedTrade];
-  console.log(userData.username);
 
   if (userData.sentTrade) reqAndSent = [...reqAndSent, ...userData.sentTrade];
-  console.log(reqAndSent);
 
   return reqAndSent.sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -755,78 +755,77 @@ export async function saveFavoritePack(userUid: string, card: Card) {
   };
 }
 
+// controllers.ts (REPLACEMENT)
+
 export async function requestTrade(
   userUID: string,
   sentUserUID: string,
   wantedCard: Card,
   givenCard: Card
 ): Promise<void> {
-  const userData = await getUserData(userUID);
-  const sentUserData = await getUserData(sentUserUID);
-
   const tradeId = uuidv4();
   const date = new Date();
 
-  if (!userData || !sentUserData)
-    throw new Error("User or sent User not found");
-  let sentTrades: sentUser[] = [];
-  const sendTrade: sentUser = {
-    tradeId: tradeId,
-    sentUserUID: userUID,
-    wantedCard: wantedCard,
-    givenCard: givenCard,
-    status: "pending",
-    date: date,
-  };
+  // 1. Wrap all database operations in a Transaction
+  await db.runTransaction(async (transaction: any) => {
+    // Define Document References
+    const userRef = db.collection("users").doc(userUID);
+    const sentUserRef = db.collection("users").doc(sentUserUID);
 
-  if (userData.sentTrade && userData.sentTrade.length > 0) {
-    const hasUsedCard = userData.sentTrade
-      .filter((t) => t.status === "pending")
-      .some((t) => t.givenCard.name === givenCard.name);
+    // 2. Read Documents ATOMICALLY within the transaction
+    const [userDoc, sentUserDoc] = await Promise.all([
+      transaction.get(userRef),
+      transaction.get(sentUserRef),
+    ]);
 
+    if (!userDoc.exists) throw new Error("Requesting User not found");
+    if (!sentUserDoc.exists) throw new Error("Recipient User not found");
+
+    const userData = userDoc.data() as userData;
+    const sentUserData = sentUserDoc.data() as userData;
+
+    // 3. Validation and Trade Object Creation
+    const pendingSentTrades = (userData.sentTrade || []).filter(
+      (t) => t.status === "pending"
+    );
+    const hasUsedCard = pendingSentTrades.some(
+      (t) => t.givenCard.name === givenCard.name
+    );
     if (hasUsedCard) {
-      throw Error("Card is already in use for another trade");
+      throw new Error("Card is already in use for another trade");
     }
 
-    sentTrades = [...userData.sentTrade, sendTrade];
-  } else {
-    sentTrades = [sendTrade];
-  }
+    // Trade object for the SENDER (userUID)
+    const sendTrade: otherUser = {
+      type: "send",
+      tradeId: tradeId,
+      otherUserUID: sentUserUID,
+      wantedCard: wantedCard,
+      givenCard: givenCard,
+      status: "pending",
+      date: date,
+    };
 
-  const sentTradeData = { sentTrade: sentTrades };
+    // Trade object for the RECIPIENT (sentUserUID)
+    const requestTrade: otherUser = {
+      type: "request",
+      tradeId: tradeId,
+      otherUserUID: userUID,
+      wantedCard: wantedCard,
+      givenCard: givenCard,
+      status: "pending",
+      date: date,
+    };
 
-  let reqTrades: requestUser[] = [];
-  const requestTrade: requestUser = {
-    tradeId: tradeId,
-    requestedUserUID: sentUserUID,
-    wantedCard: givenCard,
-    givenCard: wantedCard,
-    status: "pending",
-    date: date,
-  };
+    // 4. Modify Data in Memory
+    const newSentTrades = [...(userData.sentTrade || []), sendTrade];
+    const newReqTrades = [...(sentUserData.requestedTrade || []), requestTrade];
 
-  if (sentUserData.requestedTrade && sentUserData.requestedTrade.length > 0) {
-    reqTrades = [...sentUserData.requestedTrade, requestTrade];
-  } else {
-    reqTrades = [requestTrade];
-  }
-
-  const reqTradedata = { requestedTrade: reqTrades };
-
-  const isUserSet = await setUserData(userUID, sentTradeData);
-  const isSentUserSet = await setUserData(sentUserUID, reqTradedata);
-
-  if (!isUserSet) {
-    if (!isSentUserSet) {
-      throw new Error("Trade cannot be made");
-    }
-
-    throw new Error(" Sent User is set but User is not. That is NOT good");
-  }
-
-  if (!isSentUserSet) {
-    throw new Error("User is set but sent user is not. That is NOT good");
-  }
+    // 5. Perform Atomic Writes
+    // If either of these fails, the entire transaction is rolled back.
+    transaction.update(userRef, { sentTrade: newSentTrades });
+    transaction.update(sentUserRef, { requestedTrade: newReqTrades });
+  });
 }
 
 export async function respondTrade(
@@ -834,45 +833,108 @@ export async function respondTrade(
   response: MyResponse,
   tradeId: string
 ): Promise<void> {
-  const userData = await getUserData(userUID);
-  const reqUserData = await getReqUserData(userData, tradeId);
+  await db.runTransaction(async (transaction: any) => {
+    // 1. Get User A's (Recipient/Responder) data
+    const userRef = db.collection("users").doc(userUID);
+    const userDoc = await transaction.get(userRef);
+    if (!userDoc.exists) throw new Error("Responder User document not found.");
+    const userData = userDoc.data() as userData;
 
-  if (!userData || !reqUserData) throw new Error("User or sent User not found");
-
-  if (!userData.requestedTrade || !reqUserData.sentTrade) {
-    throw new Error("Invalid requested user or sent user");
-  }
-
-  const reqUser = reqUserData.sentTrade.find((u) => u.tradeId === tradeId);
-  if (!reqUser) throw new Error("User never wanted card?!");
-  reqUser.status = response;
-
-  if (response === "accepted") {
-    const index = userData.cards.findIndex((u) => u === reqUser!.givenCard);
-    if (index !== -1) {
-      userData.cards.splice(index, 1);
-    } else {
-      throw new Error("User never had the card to start off with");
-    }
-    userData.cards.push(reqUser!.wantedCard);
-
-    const index2 = reqUserData.cards.findIndex(
-      (u) => u === reqUser!.wantedCard
+    // 2. Locate the requested trade in the responder's data
+    const userTradeIndex = (userData.requestedTrade || []).findIndex(
+      (t) => t.tradeId === tradeId && t.status === "pending"
     );
-    if (index2 !== -1) {
-      reqUserData.cards.splice(index2, 1);
-    } else {
-      throw new Error("Requested User never had the card");
-    }
-    reqUserData.cards.push(reqUser!.givenCard);
-  } else if (response === "rejected") {
-    reqUser.status = "rejected";
-  }
 
-  userData.requestedTrade = userData.requestedTrade.filter(
-    (u) => u.tradeId !== tradeId
-  );
+    if (userTradeIndex === -1) {
+      // This is the error you were hitting, now safely inside the transaction
+      throw new Error(
+        "Trade not found or already processed (no longer pending)."
+      );
+    }
+    if (!userData.requestedTrade) throw Error("Not Found");
+    const userTrade = userData.requestedTrade[userTradeIndex];
+    const reqUserUID = userTrade.otherUserUID; // The sender's UID
+
+    // 3. Get User B's (Sender/Requester) data
+    const reqUserRef = db.collection("users").doc(reqUserUID);
+    const reqUserDoc = await transaction.get(reqUserRef);
+    if (!reqUserDoc.exists)
+      throw new Error("Requester User document not found.");
+    const reqUserData = reqUserDoc.data() as userData;
+
+    // 4. Locate the corresponding sent trade in the sender's data
+    const reqUserTradeIndex = (reqUserData.sentTrade || []).findIndex(
+      (t) => t.tradeId === tradeId && t.status === "pending"
+    );
+
+    // Safety check, though the recipient should always have it if the request was valid
+    if (reqUserTradeIndex === -1) {
+      throw new Error("Corresponding sent trade not found for requester.");
+    }
+
+    if (!reqUserData.sentTrade) throw Error("Sent Trade not found");
+    const reqUserTrade = reqUserData.sentTrade[reqUserTradeIndex];
+
+    // --- 5. Card Swapping & Trade Status Update ---
+    let newUserDataCards = [...(userData.cards || [])];
+    let newReqUserDataCards = [...(reqUserData.cards || [])];
+
+    let tradeStatus: Status = response === "accepted" ? "accepted" : "rejected";
+
+    if (tradeStatus === "accepted") {
+      // User A (Responder) card swap
+      const cardToGiveIndexA = newUserDataCards.findIndex(
+        (c) => c.name === userTrade.givenCard.name
+      );
+      if (cardToGiveIndexA === -1) {
+        throw new Error(
+          `Responder User ${userUID} does not have card to give: ${userTrade.givenCard.name}`
+        );
+      }
+      newUserDataCards.splice(cardToGiveIndexA, 1); // Give away
+      newUserDataCards.push(userTrade.wantedCard); // Receive
+
+      // User B (Requester) card swap
+      const cardToGiveIndexB = newReqUserDataCards.findIndex(
+        (c) => c.name === reqUserTrade.givenCard.name
+      );
+      if (cardToGiveIndexB === -1) {
+        throw new Error(
+          `Requester User ${reqUserUID} does not have card to give: ${reqUserTrade.givenCard.name}`
+        );
+      }
+      newReqUserDataCards.splice(cardToGiveIndexB, 1); // Give away
+      newReqUserDataCards.push(reqUserTrade.wantedCard); // Receive
+    }
+
+    // --- 6. Prepare for Atomic Writes (Remove the processed trade) ---
+
+    // Filter out the processed trade (regardless of accepted/rejected)
+    const newRequestedTrade = (userData.requestedTrade || []).filter(
+      (t) => t.tradeId !== tradeId
+    );
+
+    const newSentTrade = (reqUserData.sentTrade || []).filter(
+      (t) => t.tradeId !== tradeId
+    );
+
+    // 7. Perform Atomic Writes
+
+    // Update Responder (User A)
+    transaction.update(userRef, {
+      cards: newUserDataCards,
+      requestedTrade: newRequestedTrade,
+    });
+
+    // Update Requester (User B)
+    transaction.update(reqUserRef, {
+      cards: newReqUserDataCards,
+      sentTrade: newSentTrade,
+    });
+  });
 }
+
+// NOTE: You can now delete the getReqUserData function as it is no longer needed.
 
 export async function getReqUserData(
   data: userData | null,
@@ -880,22 +942,22 @@ export async function getReqUserData(
 ): Promise<userData | null> {
   if (!data) return null;
 
-  const reqUser = (data.requestedTrade as requestUser[]).find(
+  const reqUser = (data.requestedTrade as otherUser[]).find(
     (u) => u.tradeId === tradeId
   );
 
-  if (!reqUser?.requestedUserUID) return null;
+  if (!reqUser?.otherUserUID) return null;
 
   try {
     const reqUserDoc = await db
       .collection("users")
-      .doc(reqUser.requestedUserUID)
+      .doc(reqUser.otherUserUID)
       .get();
 
     const reqUserData = reqUserDoc.data();
 
     return {
-      UID: reqUser.requestedUserUID,
+      UID: reqUser.otherUserUID,
       username: reqUserData?.username || "",
       email: reqUserData?.email || "",
       createdAt: reqUserData?.createdAt || "",
