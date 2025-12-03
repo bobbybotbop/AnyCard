@@ -44,24 +44,78 @@ const additionalOrigins = process.env.ALLOWED_ORIGINS
 
 const allAllowedOrigins = [...allowedOrigins, ...additionalOrigins];
 
+// Helper function to check if origin should be allowed
+// Allows Vercel preview deployments (any *.vercel.app subdomain)
+const isOriginAllowed = (origin: string | undefined): boolean => {
+  if (!origin) return true; // Allow requests with no origin
+
+  // Check exact matches
+  if (allAllowedOrigins.includes(origin)) return true;
+
+  // Allow any Vercel preview deployment
+  if (origin.includes(".vercel.app")) return true;
+
+  // Allow localhost for development
+  if (
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:")
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+// Add explicit CORS headers middleware (runs before cors() middleware)
+// This ensures CORS headers are always set, even if cors() middleware fails
+app.use((req, res, next) => {
+  const origin = req.headers.origin as string | undefined;
+
+  // When credentials: true, we must specify exact origin, not "*"
+  if (isOriginAllowed(origin) && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  } else if (!origin) {
+    // For requests with no origin (like mobile apps), don't set credentials
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  // If origin is not allowed, don't set CORS headers (will be blocked)
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With, Accept"
+  );
+  res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  next();
+});
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      if (allAllowedOrigins.indexOf(origin) !== -1) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
-        // In production, be more restrictive
-        // For now, allow all origins to ensure compatibility
-        // TODO: Restrict to only allowed origins in production
-        callback(null, true);
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   })
