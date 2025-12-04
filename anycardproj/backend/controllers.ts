@@ -17,7 +17,7 @@ import {
   generatePromptWithExclusions,
   generateCustomSetPrompt,
 } from "./prompts";
-const { v4: uuidv4 } = require("uuid");
+import { v4 as uuidv4 } from "uuid";
 const { db, auth } = require("./firebase");
 
 export async function createDocument(collection: string, data: any) {
@@ -405,7 +405,7 @@ export async function processSetData(parsedData: ParsedSetData): Promise<Set> {
     );
   }
 
-  const transformedCards: Card[] = [];
+  const transformedCards = [];
   for (let i = 0; i < parsedData.cards.length; i++) {
     const card = parsedData.cards[i];
     let picture = "";
