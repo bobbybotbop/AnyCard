@@ -1,6 +1,7 @@
 {
   "installCommand": "pnpm install",
   "buildCommand": "pnpm --filter backend build",
+  "outputDirectory": "backend/dist",
   "headers": [
     {
       "source": "/api/:path*",

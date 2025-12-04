@@ -3,12 +3,6 @@ import * as controllers from "./controllers";
 
 const router: Router = express.Router();
 
-// ============= HEALTH CHECK =============
-
-router.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Backend is running" });
-});
-
 // ============= CARD ROUTES =============
 
 router.post("/api/createCard", async (req, res) => {
