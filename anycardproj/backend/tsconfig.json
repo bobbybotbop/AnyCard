@@ -5,7 +5,11 @@
     "strict": true,
     "declaration": true,
     "outDir": "./dist",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "types": ["node"]
   },
   "include": ["*.ts", "../frontend/src/auth/firebase.ts"]
 }
