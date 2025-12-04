@@ -23,7 +23,7 @@ export const AuthUserProvider = ({
         isInitialMount.current = false;
         return; // Don't set user on initial load if already logged in
       }
-      
+
       // Allow all subsequent auth changes (explicit login/logout)
       isInitialMount.current = false;
       if (userAuth) {

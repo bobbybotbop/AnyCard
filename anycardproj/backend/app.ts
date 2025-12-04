@@ -32,10 +32,10 @@ const app: Express = express();
 // Middleware
 // Configure CORS to allow production frontend and local development
 const allowedOrigins = [
-  "https://any-card-j55v.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://anycard-backend.vercel.app",
+  "https://any-card-j55v.vercel.app", // Production frontend
+  "https://anycard-backend.vercel.app", // Production backend
+  "http://localhost:5173", // Local development (Vite)
+  "http://localhost:3000", // Local development (alternative port)
 ];
 
 // Add environment variable support for additional origins
@@ -45,28 +45,47 @@ const additionalOrigins = process.env.ALLOWED_ORIGINS
 
 const allAllowedOrigins = [...allowedOrigins, ...additionalOrigins];
 
+// Helper function to normalize origin (remove trailing slashes, ensure https)
+const normalizeOrigin = (origin: string): string => {
+  return origin.replace(/\/+$/, ""); // Remove trailing slashes
+};
+
 // Helper function to check if origin should be allowed
-// Allows Vercel preview deployments (any *.vercel.app subdomain)
+// Explicitly allows production frontend and backend, plus Vercel preview deployments
 const isOriginAllowed = (origin: string | undefined): boolean => {
   if (!origin) return true; // Allow requests with no origin
 
-  // Check exact matches
-  if (allAllowedOrigins.includes(origin)) return true;
+  // Normalize the origin for comparison
+  const normalizedOrigin = normalizeOrigin(origin);
+
+  // Check exact matches (normalized)
+  const normalizedAllowed = allAllowedOrigins.map(normalizeOrigin);
+  if (normalizedAllowed.includes(normalizedOrigin)) return true;
+
+  // Explicitly allow production domains
+  if (
+    normalizedOrigin === "https://any-card-j55v.vercel.app" ||
+    normalizedOrigin === "https://anycard-backend.vercel.app"
+  ) {
+    return true;
+  }
 
   // Allow any Vercel preview deployment (including production and preview URLs)
-  if (origin.includes(".vercel.app")) return true;
+  if (normalizedOrigin.includes(".vercel.app")) return true;
 
   // Allow localhost for development
   if (
-    origin.startsWith("http://localhost:") ||
-    origin.startsWith("http://127.0.0.1:")
+    normalizedOrigin.startsWith("http://localhost:") ||
+    normalizedOrigin.startsWith("http://127.0.0.1:")
   ) {
     return true;
   }
 
   // Log disallowed origins for debugging (only in development)
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[CORS] Origin not allowed: ${origin}`);
+    console.log(
+      `[CORS] Origin not allowed: ${origin} (normalized: ${normalizedOrigin})`
+    );
   }
 
   return false;
@@ -77,23 +96,45 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
 
+  // Handle preflight OPTIONS requests FIRST - must return early with proper headers
+  if (req.method === "OPTIONS") {
+    // For preflight, always set CORS headers based on origin
+    if (origin) {
+      // When credentials are used, must specify exact origin, not "*"
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    } else {
+      // For requests with no origin, use wildcard (but can't use credentials)
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
+
+    // Set required CORS headers for preflight
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, X-Requested-With, Accept"
+    );
+    res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
+
+    // Return 204 No Content for preflight
+    return res.status(204).end();
+  }
+
+  // For non-OPTIONS requests, set CORS headers
   // Check if origin is allowed
   const originAllowed = isOriginAllowed(origin);
 
   // Always set CORS headers - be permissive to ensure requests work
   // When credentials: true, we must specify exact origin, not "*"
-  if (originAllowed && origin) {
+  if (origin) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
-  } else if (!origin) {
+  } else {
     // For requests with no origin (like mobile apps), don't set credentials
     res.setHeader("Access-Control-Allow-Origin", "*");
-  } else {
-    // If origin check fails but origin exists, still allow it (permissive mode for production)
-    // Log for debugging
-    console.log(`[CORS] Allowing origin despite check: ${origin}`);
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
   // Always set these headers for all requests
@@ -106,18 +147,6 @@ app.use((req, res, next) => {
     "Content-Type, Authorization, X-Requested-With, Accept"
   );
   res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
-
-  // Handle preflight requests - must return early with proper headers
-  if (req.method === "OPTIONS") {
-    // For preflight, ensure CORS headers are set
-    if (origin) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    } else {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-    }
-    return res.status(204).end();
-  }
 
   next();
 });
