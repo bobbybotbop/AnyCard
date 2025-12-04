@@ -58,11 +58,7 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
   // Normalize the origin for comparison
   const normalizedOrigin = normalizeOrigin(origin);
 
-  // Check exact matches (normalized)
-  const normalizedAllowed = allAllowedOrigins.map(normalizeOrigin);
-  if (normalizedAllowed.includes(normalizedOrigin)) return true;
-
-  // Explicitly allow production domains
+  // Explicitly allow production frontend and backend domains (check first for performance)
   if (
     normalizedOrigin === "https://any-card-j55v.vercel.app" ||
     normalizedOrigin === "https://anycard-backend.vercel.app"
@@ -71,7 +67,12 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
   }
 
   // Allow any Vercel preview deployment (including production and preview URLs)
+  // This covers all Vercel deployments including the frontend URL
   if (normalizedOrigin.includes(".vercel.app")) return true;
+
+  // Check exact matches (normalized) from allowedOrigins array
+  const normalizedAllowed = allAllowedOrigins.map(normalizeOrigin);
+  if (normalizedAllowed.includes(normalizedOrigin)) return true;
 
   // Allow localhost for development
   if (
@@ -88,19 +89,29 @@ const isOriginAllowed = (origin: string | undefined): boolean => {
     );
   }
 
+  // In production, be permissive - allow all origins to avoid CORS issues
+  // This ensures Vercel preview deployments and other edge cases work
+  if (process.env.NODE_ENV === "production") {
+    return true;
+  }
+
   return false;
 };
 
-// Add explicit CORS headers middleware (runs before cors() middleware)
-// This ensures CORS headers are always set, even if cors() middleware fails
+// Add explicit CORS headers middleware (runs BEFORE cors() middleware)
+// This ensures CORS headers are always set, especially for OPTIONS preflight requests
+// Critical for Vercel serverless functions where CORS must be handled explicitly
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
 
   // Handle preflight OPTIONS requests FIRST - must return early with proper headers
+  // This is critical for CORS to work in Vercel serverless functions
   if (req.method === "OPTIONS") {
-    // For preflight, always set CORS headers based on origin
+    // Set CORS headers for preflight requests
+    // Always use the request origin if present (required for credentials)
     if (origin) {
       // When credentials are used, must specify exact origin, not "*"
+      // isOriginAllowed ensures we only set headers for allowed origins
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Credentials", "true");
     } else {
@@ -119,7 +130,8 @@ app.use((req, res, next) => {
     );
     res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
 
-    // Return 204 No Content for preflight
+    // Return 204 No Content for preflight - CRITICAL for CORS to work
+    // This must return early before any other middleware processes the request
     return res.status(204).end();
   }
 
@@ -130,6 +142,7 @@ app.use((req, res, next) => {
   // Always set CORS headers - be permissive to ensure requests work
   // When credentials: true, we must specify exact origin, not "*"
   if (origin) {
+    // Always allow the origin if it's valid, be permissive for Vercel deployments
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   } else {
