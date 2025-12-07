@@ -58,8 +58,8 @@ AnyCard is a full-stack web application that combines AI-powered content generat
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/05ba0bd2-6fce-45ca-a229-274f98ce2280"/>
 
 - **3D Card Pack Visualization**: Interactive Three.js animations for pack opening
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2df9c83d-955c-40d5-a8f2-3a5cb80b87ff"/>
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/eb6b4982-3215-417d-9bbf-b4cff02fd283"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7d27cce3-ce63-47ec-9331-047d2250199b"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b738967f-91f3-48ce-9f68-36ded7e000a0"/>
 
 Each card's background and border is calculated based of common colors within the picture
 
