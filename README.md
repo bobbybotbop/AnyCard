@@ -106,10 +106,6 @@ AnyCard/
     └── common/        # Shared utilities
 ```
 
-## Screenshots
-
-<!-- Add your screenshots here -->
-
 ## Setup Instructions
 
 ### Prerequisites
@@ -191,7 +187,3 @@ docker run -p 80:80 anycard
 ```
 
 The Docker setup uses Nginx to serve the frontend and proxy API requests to the backend.
-
-## License
-
-MIT License
