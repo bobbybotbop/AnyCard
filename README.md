@@ -54,24 +54,32 @@ AnyCard is a full-stack web application that combines AI-powered content generat
 
 ## Features
 
-- **AI-Generated Card Sets**: Random themed collections generated using OpenRouter API
-![weeklyBob](https://github.com/user-attachments/assets/fa40905b-255f-46e6-96d7-14931a4f8ce8)
+- **AI-Generated Card Sets**: Random themed collections generated using OpenRouter API + Serper Google Image Search API
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/05ba0bd2-6fce-45ca-a229-274f98ce2280"/>
+
 - **3D Card Pack Visualization**: Interactive Three.js animations for pack opening
-![Adobe Express - openingWeekly](https://github.com/user-attachments/assets/d73ea016-22cf-4f72-9aaa-fe71048bc629)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/2df9c83d-955c-40d5-a8f2-3a5cb80b87ff"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/eb6b4982-3215-417d-9bbf-b4cff02fd283"/>
+
 Each card's background and border is calculated based of common colors within the picture
 
-- **Custom Set Creation**: Users can create custom card sets with their own themes
-![Adobe Express - typingCustom](https://github.com/user-attachments/assets/a6a10b8a-bf4e-455d-84e0-e115fec0a299)
-- **Pack Opening Mechanics**: Random card distribution based on rarity probabilities
-![Adobe Express - openingCustom](https://github.com/user-attachments/assets/3e228fa7-f46a-4adb-b326-a189672c12d0)
 
+- **Custom Set Creation**: Users can create custom card sets with their own themes
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b525f1e4-7d07-4fb7-9ef1-a8a204b7b69f"/>
+
+- **Pack Opening Mechanics**: Random card distribution based on rarity probabilities
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f2d1bbd0-9570-493a-a05a-2f40c31f9d8e"/>
 
 - **Card Trading System**: Request and respond to trades with other users
-![Adobe Express - trading](https://github.com/user-attachments/assets/c23ac9a7-a304-449e-afa6-40682f202334)
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/301f43c3-aff5-4e6a-905e-b4c4de564fdc"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3ec21b9c-84a2-4759-ab4e-47ba6ce93dd9"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f8f5a547-3042-4b03-8c4d-ff0f1d17ccef"/>
 
 - **Inventory Management**: View and organize your card collection
-![inventory](https://github.com/user-attachments/assets/0ff3721f-d948-4ff9-8b42-fbfddf76037c)
-![cardClick](https://github.com/user-attachments/assets/536719a3-ea7b-4c61-820b-57284699a3fc)
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/0ff3721f-d948-4ff9-8b42-fbfddf76037c"/>
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/536719a3-ea7b-4c61-820b-57284699a3fc"/>
+
 
 - **User Profiles**: Track your collection, level, and favorite cards
 <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dc45e283-c928-45a2-a752-1d1ed7e9e2d0" />
