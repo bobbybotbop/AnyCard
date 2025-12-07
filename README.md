@@ -55,14 +55,27 @@ AnyCard is a full-stack web application that combines AI-powered content generat
 ## Features
 
 - **AI-Generated Card Sets**: Random themed collections generated using OpenRouter API
-- **Daily Pack System**: Rotating sets of cards available daily
-- **Custom Set Creation**: Users can create custom card sets with their own themes
-- **Card Trading System**: Request and respond to trades with other users
-- **User Profiles**: Track your collection, level, and favorite cards
-- **Inventory Management**: View and organize your card collection
+![weeklyBob](https://github.com/user-attachments/assets/fa40905b-255f-46e6-96d7-14931a4f8ce8)
 - **3D Card Pack Visualization**: Interactive Three.js animations for pack opening
-- **Card Rarity System**: Six rarity tiers (Common, Uncommon, Rare, Epic, Legendary, Mythic)
+![Adobe Express - openingWeekly](https://github.com/user-attachments/assets/d73ea016-22cf-4f72-9aaa-fe71048bc629)
+Each card's background and border is calculated based of common colors within the picture
+
+- **Custom Set Creation**: Users can create custom card sets with their own themes
+![Adobe Express - typingCustom](https://github.com/user-attachments/assets/a6a10b8a-bf4e-455d-84e0-e115fec0a299)
 - **Pack Opening Mechanics**: Random card distribution based on rarity probabilities
+![Adobe Express - openingCustom](https://github.com/user-attachments/assets/3e228fa7-f46a-4adb-b326-a189672c12d0)
+
+
+- **Card Trading System**: Request and respond to trades with other users
+![Adobe Express - trading](https://github.com/user-attachments/assets/c23ac9a7-a304-449e-afa6-40682f202334)
+
+- **Inventory Management**: View and organize your card collection
+![inventory](https://github.com/user-attachments/assets/0ff3721f-d948-4ff9-8b42-fbfddf76037c)
+![cardClick](https://github.com/user-attachments/assets/536719a3-ea7b-4c61-820b-57284699a3fc)
+
+- **User Profiles**: Track your collection, level, and favorite cards
+<img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dc45e283-c928-45a2-a752-1d1ed7e9e2d0" />
+
 
 ## Project Structure
 
