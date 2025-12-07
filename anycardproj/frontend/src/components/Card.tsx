@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Card as CardType } from "../data/cards";
+import { Card as CardType } from "@full-stack/types";
 import { proxyImageUrl } from "../../lib/utils";
 import "./Card.css";
 
@@ -745,7 +745,7 @@ function Card({
         ref={cardRef}
         className={`${isHolographic ? "card-holographic-wrapper" : ""} ${
           onClick ? "cursor-pointer" : ""
-        } relative`}
+        } relative ${autoScale ? "w-full h-full" : ""}`}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={onClick}
@@ -794,7 +794,7 @@ function Card({
       <div
         className={`card-holographic-wrapper ${
           onClick ? "cursor-pointer" : ""
-        } relative`}
+        } relative ${autoScale ? "w-full h-full" : ""}`}
         onClick={onClick}
       >
         {scaledContent}

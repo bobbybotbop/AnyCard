@@ -25,6 +25,7 @@ AnyCard is a full-stack web application that combines AI-powered content generat
 ## Technologies Used
 
 ### Frontend
+
 - **React 18** - UI framework
 - **TypeScript** - Type-safe JavaScript
 - **Vite** - Build tool and development server
@@ -32,12 +33,14 @@ AnyCard is a full-stack web application that combines AI-powered content generat
 - **React Router** - Client-side routing
 
 ### Backend
+
 - **Express.js** - Web server framework
 - **Node.js** - JavaScript runtime
 - **TypeScript** - Type-safe backend code
 - **Firebase Admin SDK** - Server-side Firebase operations
 
 ### Infrastructure & Services
+
 - **Firebase** - Database (Firestore) and Authentication
 - **Docker** - Containerization
 - **Nginx** - Web server and reverse proxy
@@ -98,12 +101,14 @@ AnyCard/
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd AnyCard/anycardproj
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
@@ -111,6 +116,7 @@ npm install
 3. Set up environment variables:
 
 Create a `.env` file in the `backend` directory:
+
 ```env
 FIREBASE_SERVICE_ACCOUNT=<base64-encoded-service-account-json>
 OPENROUTER_API_KEY=<your-openrouter-api-key>

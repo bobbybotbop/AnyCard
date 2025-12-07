@@ -923,15 +923,15 @@ export function PackModelMesh({
     targetRotationRef.current = null;
 
     // Select pack screen position - where the card moves to the center of the screen
-    targetPositionRef.current.set(0, 0.4, 1.7);
+    targetPositionRef.current.set(0, 0.2, 1.7);
 
     // Set target scale for animation (scale up to 1.5x when clicked)
     const baseScale = Array.isArray(scale) ? scale[0] : scale;
-    targetScaleRef.current.set(
-      baseScale * 1.5,
-      baseScale * 1.5,
-      baseScale * 1.5
-    );
+    // targetScaleRef.current.set(
+    //   baseScale * 1.5,
+    //   baseScale * 1.5,
+    //   baseScale * 1.5
+    // );
   };
 
   // Initialize scale refs when scale prop changes
