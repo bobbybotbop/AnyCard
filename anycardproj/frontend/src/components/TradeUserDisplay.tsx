@@ -29,10 +29,10 @@ export default function TradeUserDisplay({
         onClick={() => handleCardClick(otherUser)}
         className="cursor-pointer p-4 border rounded-lg shadow-md hover:shadow-lg transition-shadow mb-6"
       >
-        <h3 className="text-lg font-semibold break-words">
+        <h3 className="text-lg font-semibold break-words pb-3">
           {otherUser.username}
         </h3>
-        <p className="text-sm text-gray-600 break-words">{otherUser.email}</p>
+        {/* <p className="text-sm text-gray-600 break-words">{otherUser.email}</p> */}
 
         {displayedCards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

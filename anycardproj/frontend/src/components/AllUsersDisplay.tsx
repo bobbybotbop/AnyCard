@@ -54,9 +54,13 @@ export default function AllUsersDisplay({ uid }: AllUsersDisplayProps) {
 
   return (
     <div>
-      <h1>User ID: {uid}</h1>
+      {/* <h1>User ID: {uid}</h1> */}
       {users.map((user) => (
-        <TradeUserDisplay key={user.UID} otherUser={user} currentUser={currentUser} />
+        <TradeUserDisplay
+          key={user.UID}
+          otherUser={user}
+          currentUser={currentUser}
+        />
       ))}
     </div>
   );

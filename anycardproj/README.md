@@ -1,71 +1,170 @@
-# full-stack
+# AnyCard
 
-A "standard" yet modern full-stack TypeScript web-application template using React/Vite on the frontend and Express on the backend, bundled with Turborepo.
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-4.4.5-646CFF?logo=vite&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=node.js&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-12.5.0-FFCA28?logo=firebase&logoColor=black)
+![Three.js](https://img.shields.io/badge/Three.js-0.160.0-000000?logo=three.js&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-20.10-2496ED?logo=docker&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?logo=vercel&logoColor=white)
 
-## Using this example
+A digital trading card game platform where users can collect, trade, and manage AI-generated trading cards. Create custom card sets, open daily packs, and trade with other players in an immersive 3D experience.
 
-Run the following command:
+## What is AnyCard?
 
-```sh
-pnpm install
-pnpm build
-pnpm dev
+AnyCard is a full-stack web application that combines AI-powered content generation with a traditional trading card game experience. Users can:
+
+- **Collect Cards**: Open packs to discover cards with varying rarities
+- **Create Custom Sets**: Generate themed card collections using AI
+- **Trade Cards**: Exchange cards with other players
+- **Manage Inventory**: Track your collection and favorite cards
+- **Experience 3D Visualizations**: Interactive 3D card pack opening animations
+
+## Technologies Used
+
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Build tool and development server
+- **Three.js & React Three Fiber** - 3D graphics and visualizations
+- **React Router** - Client-side routing
+
+### Backend
+- **Express.js** - Web server framework
+- **Node.js** - JavaScript runtime
+- **TypeScript** - Type-safe backend code
+- **Firebase Admin SDK** - Server-side Firebase operations
+
+### Infrastructure & Services
+- **Firebase** - Database (Firestore) and Authentication
+- **Docker** - Containerization
+- **Nginx** - Web server and reverse proxy
+- **Vercel** - Deployment platform
+
+## APIs Used
+
+- **OpenRouter API** - AI-powered card set generation using Claude 3 Haiku model. Generates themed card sets with names, stats, and attack descriptions.
+- **Serper API** - Google image search API for finding card images based on card names and themes.
+- **Firebase** - Provides Firestore database for storing user data, cards, sets, and trades, plus Firebase Authentication for user management.
+
+## Features
+
+- **AI-Generated Card Sets**: Random themed collections generated using OpenRouter API
+- **Daily Pack System**: Rotating sets of cards available daily
+- **Custom Set Creation**: Users can create custom card sets with their own themes
+- **Card Trading System**: Request and respond to trades with other users
+- **User Profiles**: Track your collection, level, and favorite cards
+- **Inventory Management**: View and organize your card collection
+- **3D Card Pack Visualization**: Interactive Three.js animations for pack opening
+- **Card Rarity System**: Six rarity tiers (Common, Uncommon, Rare, Epic, Legendary, Mythic)
+- **Pack Opening Mechanics**: Random card distribution based on rarity probabilities
+
+## Project Structure
+
+```
+AnyCard/
+├── frontend/          # React frontend application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── pages/        # Page components
+│   │   ├── api/          # API client functions
+│   │   └── auth/         # Authentication logic
+│   └── package.json
+├── backend/           # Express backend server
+│   ├── api/           # API route handlers
+│   ├── controllers.ts # Business logic
+│   ├── routers.ts     # Route definitions
+│   └── server.ts      # Server entry point
+└── lib/               # Shared code
+    ├── types/         # Shared TypeScript types
+    └── common/        # Shared utilities
 ```
 
-The server will be available at `http://localhost:8080`.
-The client will be available at `http://localhost:5173`.
+## Screenshots
 
-## What's inside?
+<!-- Add your screenshots here -->
 
--   [TypeScript](https://www.typescriptlang.org/) for static type checking
--   [Turborepo](https://turbo.build/repo) for monorepo management
+## Setup Instructions
 
-On the frontend:
+### Prerequisites
 
--   [Vite](https://vitejs.dev/) for frontend development
--   [React](https://reactjs.org/) for frontend UI
--   [React Router](https://reactrouter.com/) for frontend routing
--   [Mantine](https://mantine.dev/) for frontend UI components
--   [Lucide](https://lucide.dev/) for frontend icons
+- Node.js (v20 or higher)
+- npm or yarn package manager
+- Firebase project with Firestore and Authentication enabled
+- API keys for OpenRouter and Serper
 
-On the backend:
+### Installation
 
--   [Express](https://expressjs.com/) for backend development
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd AnyCard/anycardproj
+```
 
-## Making Edits
+2. Install dependencies:
+```bash
+npm install
+```
 
-To edit the frontend, `cd` into `frontend` and make changes as you would normally in a standard React app.
+3. Set up environment variables:
 
-To edit the backend, `cd` into `backend` and make changes as you would normally in a standard Express server.
+Create a `.env` file in the `backend` directory:
+```env
+FIREBASE_SERVICE_ACCOUNT=<base64-encoded-service-account-json>
+OPENROUTER_API_KEY=<your-openrouter-api-key>
+SERPER_API_KEY=<your-serper-api-key>
+ALLOWED_ORIGINS=<comma-separated-origins>
+```
 
-To edit types that are _shared_ between the frontend and backend, `cd` into `lib/types`, and put your types in `index.ts`. You can put miscellaneous types here that you want to share between the frontend and backend in the `src` directory within. Don't forget to export them!
+For local development, you can also place your Firebase service account JSON file at `backend/secrets/ACFire.json`.
 
-## Deploying
+4. Set up Firebase configuration:
 
-We recommend using [Fly.io](https://fly.io/) for deployment.
+In the `frontend/src/auth/firebase.ts` file, configure your Firebase project credentials.
 
-As a fair warning, this will require a credit card. However, you shouldn't get charged for it, as Fly.io has a generous free tier.
+5. Start the development servers:
 
-1. Make an account on [Fly.io](https://fly.io/)
+```bash
+# Start backend (runs on http://localhost:8080)
+cd backend
+npm run dev
 
-2. Install [flyctl](https://fly.io/docs/hands-on/install-flyctl/)
+# Start frontend (runs on http://localhost:5173)
+cd frontend
+npm run dev
+```
 
-3. Run `flyctl auth login`
+## Deployment
 
-    You may be prompted to add a credit card at this stage. We recommend doing so in order to proceed.
+### Vercel Deployment
 
-4. Run `flyctl launch`
+The project is configured for deployment on Vercel:
 
-    If asked to tweak settings, answer 'N' unless you know what you're doing.
+1. **Frontend**: Deployed automatically via Vercel when pushing to the main branch
+2. **Backend**: Deployed as serverless functions on Vercel
 
-    After launching, the terminal should print the URL at which your app is publicly available.
+### Environment Variables
 
-5. Modify the `BACKEND_BASE_PATH` variable.
+Set the following environment variables in your Vercel project:
 
-    If you haven't already, go to `/frontend/src/constants/Navigation.tsx` and read the `TODO` instructions left there. Then, make the changes accordingly.
+- `FIREBASE_SERVICE_ACCOUNT` - Base64 encoded Firebase service account JSON
+- `OPENROUTER_API_KEY` - Your OpenRouter API key
+- `SERPER_API_KEY` - Your Serper API key
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 
-6. Run `flyctl deploy` to re-deploy changes to your app to the same URL.
+### Docker Deployment
 
-### Debugging
+The project includes a Dockerfile for containerized deployment:
 
-If your deployment launch name gets too long. Try going into your (fly.io)[https://fly.io] dashboard and go to `Apps` then delete any current apps you may currently have. Then go back to the console and run `flyctl launch` when asked "Do you want to tweak these settings before proceeding?" type "y" and then change the name to your desired name.
+```bash
+docker build -t anycard .
+docker run -p 80:80 anycard
+```
+
+The Docker setup uses Nginx to serve the frontend and proxy API requests to the backend.
+
+## License
+
+MIT License
